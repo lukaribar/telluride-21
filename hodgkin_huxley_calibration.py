@@ -2,12 +2,13 @@
 # adjusting the maximal conductance parameters to keep onset of spiking
 # unperturbed
 #%%
-from abc import ABC, abstractmethod  # for abstract classes
 import numpy as np
 from numpy import exp
 
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
+
+from abc import ABC, abstractmethod  # for abstract classes
 
 class HHKinetics(ABC):
     """
