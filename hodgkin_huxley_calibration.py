@@ -139,16 +139,20 @@ def ramp(t):
     I = (t>=0)*I1 + (t/T)*(I2 - I1)
     return I
 
-def odesys(t, y):
+def odesys(t, y, gates):
     V, m, h, n = y
     
     I = I0
     #I = ramp(t)
     
+    M = gates[0]
+    H = gates[1]
+    N = gates[2]
+
     dV = -gl*(V - El) - gna*m**3*h*(V - Ena) - gk*n**4*(V - Ek) + I
-    dm = m_HH.diff(V,m)
-    dh = h_HH.diff(V,h)
-    dn = n_HH.diff(V,n)
+    dm = M.diff(V,m)
+    dh = H.diff(V,h)
+    dn = N.diff(V,n)
     return [dV, dm, dh, dn]
 
 trange = (0, T)
@@ -157,10 +161,15 @@ trange = (0, T)
 V0 = 0.001
 y0 = [V0, m_HH.inf(V0), h_HH.inf(V0), n_HH.inf(V0)]
 
-sol = solve_ivp(odesys, trange, y0)
+gates_HH = [m_HH,h_HH,n_HH]
+gates_P = [m_P,h_P,n_P]
+
+sol_HH = solve_ivp(lambda t,y : odesys(t,y,gates_HH), trange, y0)
+sol_P = solve_ivp(lambda t,y : odesys(t,y,gates_P), trange, y0)
 
 # Plot the simulation
 plt.figure()
-plt.plot(sol.t, sol.y[0])
+plt.plot(sol_HH.t, sol_HH.y[0],sol_P.t, sol_P.y[0])
+plt.legend(['HH','perturbed HH'])
 plt.figure()
-plt.plot(sol.t, ramp(sol.t))
+plt.plot(sol_HH.t, ramp(sol_HH.t))
