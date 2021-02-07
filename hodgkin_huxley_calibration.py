@@ -19,7 +19,8 @@ dVbetan = mag*np.random.normal(0,1)
 
 def alpha_m(V):
     V = V + dValpham # add offset due to uncertainty
-    a =	np.zeros(V.shape)
+    a =	np.zeros(np.size(V))
+    V = np.array(V)
     a[V!=25] = 0.1 * (25 - V[V!=25]) / (exp((25 - V[V!=25]) / 10) - 1)
     a[V==25] = 1
     return a
@@ -38,7 +39,8 @@ def beta_h(V):
 
 def alpha_n(V):
     V = V + dValphan # add offset due to uncertainty
-    a =	np.zeros(V.shape)
+    a =	np.zeros(np.size(V))
+    V = np.array(V)
     a[V!=10] = 0.01 * (10 - V[V!=10]) / (exp((10 - V[V!=10])/10) - 1)
     a[V==10] = 0.1
     return a
