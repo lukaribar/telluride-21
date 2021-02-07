@@ -1,7 +1,7 @@
 # Add uncertainty to Hodgkin-Huxley parameters, try 'recalibrating' by
 # adjusting the maximal conductance parameters to keep onset of spiking
 # unperturbed
-
+#%%
 import numpy as np
 from numpy import exp
 
@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
 # Offsets to alpha/beta functions, generate randomly
-mag = 10
+mag = 0
 dValpham = mag*np.random.normal(0,1)
 dVbetam = mag*np.random.normal(0,1)
 dValphah = mag*np.random.normal(0,1)
@@ -19,7 +19,10 @@ dVbetan = mag*np.random.normal(0,1)
 
 def alpha_m(V):
     V = V + dValpham # add offset due to uncertainty
-    return 0.1 * (25 - V) / (exp((25 - V) / 10) - 1)
+    a =	np.zeros(V.shape)
+    a[V!=25] = 0.1 * (25 - V[V!=25]) / (exp((25 - V[V!=25]) / 10) - 1)
+    a[V==25] = 1
+    return a
 
 def beta_m(V):
     V = V + dVbetam # add offset due to uncertainty
@@ -35,8 +38,11 @@ def beta_h(V):
 
 def alpha_n(V):
     V = V + dValphan # add offset due to uncertainty
-    return 0.01 * (10 - V) / (exp((10 - V)/10) - 1)
-
+    a =	np.zeros(V.shape)
+    a[V!=10] = 0.01 * (10 - V[V!=10]) / (exp((10 - V[V!=10])/10) - 1)
+    a[V==10] = 0.1
+    return a
+        
 def beta_n(V):
     V = V + dVbetan # add offset due to uncertainty
     return 0.125 * exp(-V / 80)
@@ -56,6 +62,18 @@ Ek = -12
 Ena = 120
 El = 10.6
 
+#%% Plot 'IV' curves
+# Note: Division by 0 in alpha_m(V) and alpha_n(V)
+V = np.arange(-20,130,0.5)
+Ifast = gl*(V - El) + gna*m_inf(V)**3*h_inf(V)*(V - Ena)
+Islow = Ifast + gk*n_inf(V)**4*(V - Ek)
+
+plt.figure()
+plt.plot(V, Ifast)
+plt.figure()
+plt.plot(V, Islow)
+
+#%% Simulation
 # Define length of the simulation (in ms)
 T = 500
 
@@ -105,14 +123,3 @@ plt.figure()
 plt.plot(sol.t, sol.y[0])
 plt.figure()
 plt.plot(sol.t, ramp(sol.t))
-
-# Plot 'IV' curves
-# Note: Division by 0 in alpha_m(V) and alpha_n(V)
-V = np.arange(-20,130,0.5)
-Ifast = gl*(V - El) + gna*m_inf(V)**3*h_inf(V)*(V - Ena)
-Islow = Ifast + gk*n_inf(V)**4*(V - Ek)
-
-plt.figure()
-plt.plot(V, Ifast)
-plt.figure()
-plt.plot(V, Islow)
