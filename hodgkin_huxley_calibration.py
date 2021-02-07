@@ -28,6 +28,9 @@ class HHKinetics(ABC):
     def tau(self, V):
         return 1 / (self.alpha(V) + self.beta(V))
 
+    def diff(self,V,x):
+        return self.alpha(V)*(1 - x) - self.beta(V)*x
+
 class HHActivation(HHKinetics):
     """
     HH-type (alpha-beta) activation gating variable kinetics. 
@@ -101,13 +104,13 @@ Valphan = 10 + mag*np.random.normal(0,1)
 Vbetan = 0 + mag*np.random.normal(0,1)
 
 # Perturbed HH kinetics
-m = HHActivation(Valpham, 0.1, 10, Vbetam, 4, 18)
-h = HHInactivation(Valphah, 0.07, 20, Vbetah, 1, 10)
-n = HHActivation(Valphan, 0.01, 10, Vbetan, 0.125, 80)
+m_P = HHActivation(Valpham, 0.1, 10, Vbetam, 4, 18)
+h_P = HHInactivation(Valphah, 0.07, 20, Vbetah, 1, 10)
+n_P = HHActivation(Valphan, 0.01, 10, Vbetan, 0.125, 80)
 
 # IV basis functions for Perturbed HH model
-Na_bf = m.inf(V)**3*h.inf(V)*(V - Ena)
-K_bf = n.inf(V)**4*(V - Ek)
+Na_bf = m_P.inf(V)**3*h_P.inf(V)*(V - Ena)
+K_bf = n_P.inf(V)**4*(V - Ek)
 L_bf = (V - El)
 
 # IV curves for nominal HH model
@@ -143,16 +146,16 @@ def odesys(t, y):
     #I = ramp(t)
     
     dV = -gl*(V - El) - gna*m**3*h*(V - Ena) - gk*n**4*(V - Ek) + I
-    dm = m_HH.alpha(V)*(1 - m) - m_HH.beta(V)*m
-    dh = h_HH.alpha(V)*(1 - h) - h_HH.beta(V)*h
-    dn = n_HH.alpha(V)*(1 - n) - n_HH.beta(V)*n
+    dm = m_HH.diff(V,m)
+    dh = h_HH.diff(V,h)
+    dn = n_HH.diff(V,n)
     return [dV, dm, dh, dn]
 
 trange = (0, T)
 
 # Initial state y = [V0, m0, h0, n0], set at Vrest = 0
 V0 = 0.001
-y0 = [V0, m_inf(V0), h_inf(V0), n_inf(V0)]
+y0 = [V0, m_HH.inf(V0), h_HH.inf(V0), n_HH.inf(V0)]
 
 sol = solve_ivp(odesys, trange, y0)
 
