@@ -11,7 +11,7 @@ from scipy.integrate import solve_ivp
 
 class HHKinetics(ABC):
     """
-    HH-type (alpha-beta) kinetics abstract class. 
+    HH-type (alpha-beta) kinetics abstract class.
     Has to be implemented by an activation or inactivation subclass.
     """
     @abstractmethod
@@ -33,7 +33,7 @@ class HHKinetics(ABC):
 
 class HHActivation(HHKinetics):
     """
-    HH-type (alpha-beta) activation gating variable kinetics. 
+    HH-type (alpha-beta) activation gating variable kinetics.
     """
     def __init__(self, aVh, aA, aK, bVh, bA, bK):
         self.aVh = aVh
