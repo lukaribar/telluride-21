@@ -75,8 +75,17 @@ class HHInactivation(HHKinetics):
     def beta(self,V):
         return self.bA / (exp((self.bVh - V) / self.bK) + 1)
 
+# Offsets to perturb alpha/beta HH functions, generate randomly
+mag = 10
+Valpham = 25 + mag*np.random.normal(0,1)
+Vbetam = 0 + mag*np.random.normal(0,1)
+Valphah = 0 + mag*np.random.normal(0,1)
+Vbetah = 30 + mag*np.random.normal(0,1)
+Valphan = 10 + mag*np.random.normal(0,1)
+Vbetan = 0 + mag*np.random.normal(0,1)
+
 #%% Plot 'IV' curves
-V = np.arange(-20,130,0.5)
+V = np.arange(-20,100,0.5)
 
 # HH Nernst potentials and maximal conductances for potassium, sodium and leak
 gk = 36
@@ -95,15 +104,6 @@ n_HH = HHActivation(10, 0.01, 10, 0, 0.125, 80)
 Ifast_HH = gl*(V - El) + gna*m_HH.inf(V)**3*h_HH.inf(V)*(V - Ena)
 Islow_HH = Ifast_HH + gk*n_HH.inf(V)**4*(V - Ek)
 
-# Offsets to perturb alpha/beta HH functions, generate randomly
-mag = 10
-Valpham = 25 + mag*np.random.normal(0,1)
-Vbetam = 0 + mag*np.random.normal(0,1)
-Valphah = 0 + mag*np.random.normal(0,1)
-Vbetah = 30 + mag*np.random.normal(0,1)
-Valphan = 10 + mag*np.random.normal(0,1)
-Vbetan = 0 + mag*np.random.normal(0,1)
-
 # Perturbed HH kinetics
 m_P = HHActivation(Valpham, 0.1, 10, Vbetam, 4, 18)
 h_P = HHInactivation(Valphah, 0.07, 20, Vbetah, 1, 10)
@@ -115,7 +115,8 @@ K_bf = n_P.inf(V)**4*(V - Ek)
 L_bf = (V - El)
 
 # IV curves for nominal HH model
-Ifast = gl*L_bf + gna*Na_bf
+gna_P = gna
+Ifast = gl*L_bf + gna_P*Na_bf
 Islow = Ifast + gk*K_bf
 
 plt.figure()
