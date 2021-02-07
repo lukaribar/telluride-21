@@ -2,78 +2,107 @@
 # adjusting the maximal conductance parameters to keep onset of spiking
 # unperturbed
 #%%
+from abc import ABC, abstractmethod  # for abstract classes
 import numpy as np
 from numpy import exp
 
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
-# Offsets to alpha/beta functions, generate randomly
-mag = 0
-dValpham = mag*np.random.normal(0,1)
-dVbetam = mag*np.random.normal(0,1)
-dValphah = mag*np.random.normal(0,1)
-dVbetah = mag*np.random.normal(0,1)
-dValphan = mag*np.random.normal(0,1)
-dVbetan = mag*np.random.normal(0,1)
+class HHKinetics(ABC):
+    """
+    HH-type (alpha-beta) kinetics abstract class. 
+    Has to be implemented by an activation or inactivation subclass.
+    """
+    @abstractmethod
+    def alpha(self,V):
+        pass
 
-def alpha_m(V):
-    V = V + dValpham # add offset due to uncertainty
-    a =	np.zeros(np.size(V))
-    V = np.array(V)
-    a[V!=25] = 0.1 * (25 - V[V!=25]) / (exp((25 - V[V!=25]) / 10) - 1)
-    a[V==25] = 1
-    return a
+    @abstractmethod
+    def beta(self,V):
+        pass
 
-def beta_m(V):
-    V = V + dVbetam # add offset due to uncertainty
-    return 4 * exp(-V / 18)
+    def inf(self,V):
+        return self.alpha(V) / (self.alpha(V) + self.beta(V))
 
-def alpha_h(V):
-    V = V + dValphah # add offset due to uncertainty
-    return 0.07 * exp(-V / 20)
+    def tau(self, V):
+        return 1 / (self.alpha(V) + self.beta(V))
 
-def beta_h(V):
-    V = V + dVbetah # add offset due to uncertainty
-    return 1 / (exp((30 - V) / 10) + 1)
+class HHActivation(HHKinetics):
+    """
+    HH-type (alpha-beta) activation gating variable kinetics. 
+    """
+    def __init__(self, aVh, aA, aK, bVh, bA, bK):
+        self.aVh = aVh
+        self.aA = aA
+        self.aK = aK
+        self.bVh = bVh
+        self.bA = bA
+        self.bK = bK
 
-def alpha_n(V):
-    V = V + dValphan # add offset due to uncertainty
-    a =	np.zeros(np.size(V))
-    V = np.array(V)
-    a[V!=10] = 0.01 * (10 - V[V!=10]) / (exp((10 - V[V!=10])/10) - 1)
-    a[V==10] = 0.1
-    return a
-        
-def beta_n(V):
-    V = V + dVbetan # add offset due to uncertainty
-    return 0.125 * exp(-V / 80)
+    def alpha(self,V):
+        A = self.aA
+        K = self.aK
+        Vh = self.aVh
+        a =	np.zeros(np.size(V))
+        V = np.array(V)
+        a[V!=Vh] = A * (Vh - V[V!=Vh]) / (exp((Vh - V[V!=Vh]) / K) - 1)
+        a[V==Vh] = A*K
+        return a
 
-def x_inf(V, alpha, beta):
-    return alpha(V) / (alpha(V) + beta(V))
+    def beta(self,V):
+        return self.bA * exp((self.bVh - V) / self.bK)
 
-def tau(V, alpha, beta):
-    return 1 / (alpha(V) + beta(V))
+class HHInactivation(HHKinetics):
+    """
+    HH-type (alpha-beta) inactivation gating variable kinetics. 
+    """
+    def __init__(self, aVh, aA, aK, bVh, bA, bK):
+        self.aVh = aVh
+        self.aA = aA
+        self.aK = aK
+        self.bVh = bVh
+        self.bA = bA
+        self.bK = bK
 
-# Nernst potentials and maximal conductances for potassium, sodium and leak
+    def alpha(self,V):
+        return self.aA * exp((self.aVh - V)/ self.aK)
+
+    def beta(self,V):
+        return self.bA / (exp((self.bVh - V) / self.bK) + 1)
+
+# HH Nernst potentials and maximal conductances for potassium, sodium and leak
 gk = 36
 gna = 120
 gl = 0.3
-
 Ek = -12
 Ena = 120
 El = 10.6
 
+# Offsets to perturb alpha/beta HH functions, generate randomly
+mag = 10
+Valpham = 25 + mag*np.random.normal(0,1)
+Vbetam = 0 + mag*np.random.normal(0,1)
+Valphah = 0 + mag*np.random.normal(0,1)
+Vbetah = 30 + mag*np.random.normal(0,1)
+Valphan = 10 + mag*np.random.normal(0,1)
+Vbetan = 0 + mag*np.random.normal(0,1)
+
 #%% Plot 'IV' curves
-# Note: Division by 0 in alpha_m(V) and alpha_n(V)
+
+m_HH = HHActivation(25, 0.1, 10, 0, 4, 18)
+h_HH = HHInactivation(0, 0.07, 20, 30, 1, 10)
+n_HH = HHActivation(10, 0.01, 10, 0, 0.125, 80)
+
+# Compute IV curves for nominal HH model
 V = np.arange(-20,130,0.5)
-Ifast = gl*(V - El) + gna*m_inf(V)**3*h_inf(V)*(V - Ena)
-Islow = Ifast + gk*n_inf(V)**4*(V - Ek)
+Ifast_HH = gl*(V - El) + gna*m_HH.inf(V)**3*h_HH.inf(V)*(V - Ena)
+Islow_HH = Ifast_HH + gk*n_HH.inf(V)**4*(V - Ek)
 
 plt.figure()
-plt.plot(V, Ifast)
+plt.plot(V, Ifast_HH)
 plt.figure()
-plt.plot(V, Islow)
+plt.plot(V, Islow_HH)
 
 #%% Simulation
 # Define length of the simulation (in ms)
@@ -90,16 +119,6 @@ def ramp(t):
     I = (t>=0)*I1 + (t/T)*(I2 - I1)
     return I
 
-# Define x_inf functions
-m_inf = lambda V: x_inf(V, alpha_m, beta_m)
-h_inf = lambda V: x_inf(V, alpha_h, beta_h)
-n_inf = lambda V: x_inf(V, alpha_n, beta_n)
-
-# Define tau functions
-tau_m = lambda V: tau(V, alpha_m, beta_m)
-tau_h = lambda V: tau(V, alpha_h, beta_h)
-tau_n = lambda V: tau(V, alpha_n, beta_n)
-
 def odesys(t, y):
     V, m, h, n = y
     
@@ -107,9 +126,9 @@ def odesys(t, y):
     #I = ramp(t)
     
     dV = -gl*(V - El) - gna*m**3*h*(V - Ena) - gk*n**4*(V - Ek) + I
-    dm = alpha_m(V)*(1 - m) - beta_m(V)*m
-    dh = alpha_h(V)*(1 - h) - beta_h(V)*h
-    dn = alpha_n(V)*(1 - n) - beta_n(V)*n
+    dm = m_HH.alpha(V)*(1 - m) - m_HH.beta(V)*m
+    dh = h_HH.alpha(V)*(1 - h) - h_HH.beta(V)*h
+    dn = n_HH.alpha(V)*(1 - n) - n_HH.beta(V)*n
     return [dV, dm, dh, dn]
 
 trange = (0, T)
