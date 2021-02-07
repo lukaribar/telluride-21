@@ -70,7 +70,7 @@ def ramp(t):
     I = (t>=0)*I1 + (t/T)*(I2 - I1)
     return I
 
-# Define x_inf and find their gradient functions
+# Define x_inf functions
 m_inf = lambda V: x_inf(V, alpha_m, beta_m)
 h_inf = lambda V: x_inf(V, alpha_h, beta_h)
 n_inf = lambda V: x_inf(V, alpha_n, beta_n)
