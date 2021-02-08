@@ -66,3 +66,72 @@ class HHInactivation(HHKinetics):
 
     def beta(self,V):
         return self.bA / (exp((self.bVh - V) / self.bK) + 1)
+
+# Develop this in case we decide to work with very general models:
+# class OhmicElement:
+#     """
+#     Single ohmic current element consisting of multiple gates:
+#         Iout = g_max * x1 * x2 * ... * xn * (V - E_rev)
+#         *args: [x1,x2,...,xn] = gates
+#     """
+#     def __init__(self, g_max, E_rev = 0, gates = [], expos = []):
+#         self.g_max = g_max
+#         self.E_rev = E_rev
+#         self.gates = gates
+#         self.expos = expos
+
+#     # Add a gating variable to the conductance element
+#     def add_gate(self, gates):
+#         self.gates.append(gates)
+#         return
+
+#     def kinetics(self,V,X):
+#         dx = np.array([])
+#         for n in range(np.size(self.gates)):
+#             dx.append(self.gates[n].diff(V,X[n]))
+#         return dx
+    
+#     def I(self,V,X):
+#         i_out = self.g_max * (V - self.E_rev)
+#         for n in range(np.size(X))
+
+class HHModel:
+    """
+        Hodgkin-Huxley model 
+    """
+    # Default to nominal HH Nernst potentials and maximal conductances
+    def __init__(self, gna = 120, gk = 36, gl = 0.3, Ena = 120, Ek = -12, El = 10.6, gates=[]):
+        self.gna = gna
+        self.gk = gk
+        self.gl = gl
+        self.Ena = Ena
+        self.Ek = Ek
+        self.El = El        
+        if not gates:
+            # Default to nominal HH kinetics
+            self.m = HHActivation(25, 0.1, 10, 0, 4, 18)
+            self.h = HHInactivation(0, 0.07, 20, 30, 1, 10)
+            self.n = HHActivation(10, 0.01, 10, 0, 0.125, 80)
+        else:
+            self.m = gates[0]
+            self.h = gates[1]
+            self.n = gates[2]
+
+    def i_int(self,V, m, h, n):
+        return self.gna*m**3*h*(V - self.Ena) + self.gk*n**4*(V - self.Ek) + self.gl*(V - self.El)
+
+    def iNa_ss(self,V):
+        return self.gna*self.m.inf(V)**3*self.h.inf(V)*(V - self.Ena)
+
+    def iK_ss(self,V):
+        return self.gk*self.n.inf(V)**4*(V - self.Ek)    
+
+    def iL_ss(self,V):
+        return self.gl*(V - self.El)
+
+    def dynamics(self, V, m, h, n, I):
+        dV = -self.i_int(V, m, h, n) + I
+        dm = self.m.diff(V,m)
+        dh = self.h.diff(V,h)
+        dn = self.n.diff(V,n)
+        return [dV, dm, dh, dn]
