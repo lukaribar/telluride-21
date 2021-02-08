@@ -62,6 +62,16 @@ class SingleTimescaleElement():
         Output depending on the appropriate Vx
         """
         return self.out(y[self.v_index])
+    
+    def IV(self, V, tau, Vrest = 0):
+        """
+        I-V curve of the element in timescale tau
+        """
+        if (self.timescale <= tau):
+            return self.out(V)
+        else:
+            return self.out(Vrest)
+        
 
 class Neuron:
     """
@@ -163,15 +173,26 @@ class Neuron:
                 iout *= x.outx(y)
             return iout
         
-        def IV(self, V, tau):
+        def IV(self, V, tau, Vrest = 0):
             I = self.g_max * (V - self.E_rev)
             gates_fast = [g for g in self.gates if g.timescale <= tau]
             gates_slow = [g for g in self.gates if g.timescale > tau]
             
             for g in gates_fast:
-                I *= 
+                I *= g.out(V)
             
+            for g in gates_slow:
+                I *= g.out(Vrest)
             
+            return I
+    
+    def IV(self, V, tau, Vrest = 0):
+        I = 0
+        for el in self.elements:
+            I += el.IV(V, tau, Vrest)
+        
+        return I
+        
     def get_init_conditions(self):
         return np.array(self.y0)
     
