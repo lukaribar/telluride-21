@@ -2,6 +2,7 @@
 # adjusting the maximal conductance parameters to keep onset of spiking
 # unperturbed
 #%%
+
 import numpy as np
 from numpy import exp
 import matplotlib.pyplot as plt
@@ -77,6 +78,7 @@ trange = (0, T)
 
 # Initial state y = [V0, m0, h0, n0], set at Vrest = 0
 V0 = 0.001
+
 y0 = [V0, HH.m.inf(V0), HH.h.inf(V0), HH.n.inf(V0)]
 
 sol_HH = solve_ivp(lambda t,y : odesys(t,y,HH), trange, y0)
