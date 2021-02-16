@@ -28,8 +28,8 @@ class NeuroDynRate:
     """
     NeuroDyn-type alpha or beta functions (kinetic rates)
     """
-    def __init__(self,d,kappa,V_T,Vb,I_ref,I_tau,sign):
-        self.d = d
+    def __init__(self,dIb,kappa,V_T,Vb,I_ref,I_tau,sign):
+        self.dIb = dIb
         self.kappa = kappa  #global?
         self.V_T = V_T  #global?
         self.Vb = Vb  #global?
@@ -39,7 +39,7 @@ class NeuroDynRate:
 
     def I_rate(self,V):
         I=0
-        Ib = self.d*self.I_tau/1024
+        Ib = self.dIb*self.I_tau/1024
         for i in range(np.size(Ib)):
             I += Ib[i] / (1 + np.exp(self.sign * self.kappa * (self.Vb[i] - V)  / self.V_T))
         return I     
@@ -48,15 +48,29 @@ class NeuroDynActivation(HHKinetics):
     """
     NeuroDyn-type activation gating variable kinetics.
     """
-    def __init__(self,d,kappa,V_T,Vb,I_ref,I_tau,sign):
-        self.alpharate = NeuroDynRate(...,1) 
-        self.betarate = NeuroDynRate(...,-1) 
+    def __init__(self,d,kappa,V_T,Vb,I_ref,I_tau):
+        self.alpharate = NeuroDynRate(d,kappa,V_T,Vb,I_ref,I_tau,1)
+        self.betarate = NeuroDynRate(d,kappa,V_T,Vb,I_ref,I_tau,-1) 
     
-    def alpha(self,V)
-        return self.alpharate.I_rate(V) / ...
+    def alpha(self,V):
+        return self.alpharate.I_rate(V) / (self.C * self.V_T)
 
-    def beta(self,V)
-        return self.alpharate.I_rate(V) / ...
+    def beta(self,V):
+        return self.betarate.I_rate(V) / (self.C * self.V_T)
+    
+class NeuroDynInactivation(HHKinetics):
+    """
+    NeuroDyn-type activation gating variable kinetics.
+    """
+    def __init__(self,d,kappa,V_T,Vb,I_ref,I_tau):
+        self.alpharate = NeuroDynRate(d,kappa,V_T,Vb,I_ref,I_tau,-1) 
+        self.betarate = NeuroDynRate(d,kappa,V_T,Vb,I_ref,I_tau,1) 
+    
+    def alpha(self,V):
+        return self.alpharate.I_rate(V) / (self.C * self.V_T)
+
+    def beta(self,V):
+        return self.betarate.I_rate(V) / (self.C * self.V_T)
 
 class HHActivation(HHKinetics):
     """
@@ -129,10 +143,103 @@ class HHInactivation(HHKinetics):
 #         i_out = self.g_max * (V - self.E_rev)
 #         for n in range(np.size(X))
 
+class NeuroDynModel:
+    """
+    NeuroDyn model
+    """
+    
+    def __init__(self, dg=[400, 160, 12], dErev=[450, -250, -150], gates=[]):
+        self.V_ref = 0              # Unit V , 1 volt
+        self.I_tau = 33e-9       # Unit A
+        self.I_voltage = 230e-9     # Unit A
+        self.I_ref = 15e-9          # Unit A
+        self.K = (0.127) * 1e-6     # Factor for the injecting current
+        
+        # Membrane & gate capacitances
+        self.C_m = 4e-12 # Unit F
+        self.C_gate = 5e-12 # Unit F
+        
+        self.shift = 0 # Injection current shift
+        
+        # Scaling parameters (e.g. parameters that set the voltage scale, time scale..)
+        self.kappa = 0.7
+        self.Vt = 26e-3 # Unit Volt
+        self.Res = 1.63e6 # Unit Ohm
+        
+        # Factor for converting digital to physical g
+        g_factor = (self.kappa / self.Vt) * (self.I_tau / 1024)
+        
+        # Factor for converting digital to physical Erev
+        E_factor = (self.I_voltage / 1024) * self.Res
+        
+        # Convert digital to physical
+        self.gna = dg[0] * g_factor
+        self.gk = dg[1] * g_factor
+        self.gl = dg[2] * g_factor
+        self.Ena = dErev[0] * E_factor + self.V_ref
+        self.Ek = dErev[1] * E_factor + self.V_ref
+        self.El = dErev[2] * E_factor + self.V_ref
+        
+        if not gates:
+            # Default to nominal NeuroDyn activation parameters
+            vb = get_default_vb()
+            self.m = NeuroDynActivation(d, )
+            self.h = NeuroDynInactivation
+            self.n = NeuroDynActivation
+        else:
+            self.m = gates[0]
+            self.h = gates[1]
+            self.n = gates[2]
+            
+    def get_default_vb(self):
+         # Bias voltages for the 7-point spline regression
+        vb = np.zeros(7) # Define the 7 bias voltages
+        vHigh = self.V_ref + 0.426
+        vLow = self.V_ref - 0.434
+        I_factor = (vHigh - vLow) / 700e3
+        vb[0] = vLow + (I_factor * 50e3)
+        for i in range(1, 7):
+            vb[i] = vb[i-1] + (I_factor * 100e3)
+            
+        return vb
+    
+    def perturb():
+        
+
 class HHModel:
     """
         Hodgkin-Huxley model 
     """
+    
+#    class Ina:
+#        def __init__(self, gna, Ena):
+#        self.gna = gna
+#        self.Ena = Ena
+#        self.p = 3
+#        self.q = 1
+#        
+#        def out(V, m, h):
+#            return self.gna*(m**p)*(h**q)*(V - self.Ena)
+#        
+#    class Ik:
+#        def __init__(self, gk, Ek):
+#            self.gk = gk
+#            self.Ek = Ek
+#            self.p = 4
+#            
+#        def out(V, n):
+#             return self.gk*(n**p)*(V - self.Ek)
+#         
+#    class Il:
+#        def __init__(self. gl, El):
+#            self.gl = gl
+#            self.El = El
+#        
+#        def out(V):
+#            return self.gl*(V - self.El)
+    
+    
+    
     # Default to nominal HH Nernst potentials and maximal conductances
     def __init__(self, gna = 120, gk = 36, gl = 0.3, Ena = 120, Ek = -12, El = 10.6, gates=[]):
         self.gna = gna

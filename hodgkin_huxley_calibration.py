@@ -1,10 +1,10 @@
 # Add uncertainty to Hodgkin-Huxley parameters, try 'recalibrating' by
 # adjusting the maximal conductance parameters to keep onset of spiking
 # unperturbed
+
 #%%
 import copy
 import numpy as np
-from numpy import exp
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 from cb_models import HHActivation, HHInactivation, HHModel
@@ -15,6 +15,7 @@ HH = HHModel()
 # Offsets to perturb alpha/beta HH functions, generate randomly
 mag = 10
 # np.random.seed(5)
+
 Valpham = HH.m.aVh + mag*np.random.normal(0,1)
 Vbetam = HH.m.bVh + mag*np.random.normal(0,1)
 Valphah = HH.h.aVh + mag*np.random.normal(0,1)
@@ -75,6 +76,31 @@ sol = Apinv.dot(Islow_HH[ind_start:ind_end]-Ifast_C[ind_start:ind_end])
 HH_C.gk = sol[0]
 Islow_C = Ifast_C + HH_C.iK_ss(V)
 
+# Find local maximum of the fast nominal fast IV curve
+Ifast_HH_grad = np.gradient(Ifast_HH) / vstep
+th_index = (np.diff(np.sign(Ifast_HH_grad)) < 0).nonzero()[0][0]
+Vth = V[th_index]
+print(Vth)
+
+# Adjust gna in the calibrated model to keep Vth const
+Ileak_P_grad = np.gradient(HH_P.iL_ss(V))[th_index] / vstep
+Ina_P_grad = np.gradient(HH_P.iNa_ss(V))[th_index] / vstep
+HH_C.gna = HH_C.gna * (-Ileak_P_grad/Ina_P_grad)
+
+# Calibrated fast IV curve
+Ifast_C = HH_C.iL_ss(V) + HH_C.iNa_ss(V)
+ 
+# Adjust gk in the calibrated model to keep Islow slope around Vth const
+Islow_grad = np.gradient(Islow_HH) / vstep
+desired_slope = Islow_grad[th_index]
+Ifast_C_grad = np.gradient(Ifast_C) / vstep
+desired_slope_k = desired_slope - Ifast_C_grad[th_index]
+k_C_grad = np.gradient(HH_P.iK_ss(V))[th_index] / vstep
+HH_C.gk = HH_C.gk * (desired_slope_k / k_C_grad)
+
+# Calibrated slow IV curve
+Islow_C = Ifast_C + HH_C.iK_ss(V)
+
 plt.figure()
 plt.plot(V, Ifast_HH, V, Ifast_P, V, Ifast_C)
 plt.legend(['HH','perturbed HH','corrected perturbed HH'])
@@ -82,7 +108,7 @@ plt.figure()
 plt.plot(V, Islow_HH, V, Islow_P, V, Islow_C)
 plt.legend(['HH','perturbed HH','corrected perturbed HH'])
 
-#%% Simulation
+# Simulation
 # Define length of the simulation (in ms)
 T = 500
 
