@@ -24,6 +24,40 @@ class HHKinetics(ABC):
     def diff(self,V,x):
         return self.alpha(V)*(1 - x) - self.beta(V)*x
 
+class NeuroDynRate:
+    """
+    NeuroDyn-type alpha or beta functions (kinetic rates)
+    """
+    def __init__(self,d,kappa,V_T,Vb,I_ref,I_tau,sign):
+        self.d = d
+        self.kappa = kappa  #global?
+        self.V_T = V_T  #global?
+        self.Vb = Vb  #global?
+        self.I_ref = I_ref
+        self.I_tau = np.array([I_tau]*7)
+        self.sign = sign
+
+    def I_rate(self,V):
+        I=0
+        Ib = self.d*self.I_tau/1024
+        for i in range(np.size(Ib)):
+            I += Ib[i] / (1 + np.exp(self.sign * self.kappa * (self.Vb[i] - V)  / self.V_T))
+        return I     
+
+class NeuroDynActivation(HHKinetics):
+    """
+    NeuroDyn-type activation gating variable kinetics.
+    """
+    def __init__(self,d,kappa,V_T,Vb,I_ref,I_tau,sign):
+        self.alpharate = NeuroDynRate(...,1) 
+        self.betarate = NeuroDynRate(...,-1) 
+    
+    def alpha(self,V)
+        return self.alpharate.I_rate(V) / ...
+
+    def beta(self,V)
+        return self.alpharate.I_rate(V) / ...
+
 class HHActivation(HHKinetics):
     """
     HH-type (alpha-beta) activation gating variable kinetics.
