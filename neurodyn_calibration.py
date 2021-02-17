@@ -11,7 +11,7 @@ def Ibump(t):
     if t < 0.004:
         return I0
     else:
-        return I0 + 40e-4*t**2*np.exp(-(t-0.004)/1e-5)
+        return I0 + 1e-3*t**2*np.exp(-(t-0.004)/1e-5)
 
 T = 0.02
 trange = (0, T)
