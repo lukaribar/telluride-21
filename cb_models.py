@@ -225,6 +225,27 @@ class NeuroDynModel:
         dn = self.n.diff(V,n)
         return [dV, dm, dh, dn]
     
+    def perturb(self,sigma=0.15):
+        
+        # Pertrub exponents
+        self.p += 0.2*np.random.randn()
+        self.q += 0.1*np.random.randn()
+        self.r += 0.2*np.random.randn()
+        
+        # For each alpha/beta, perturb Itaus
+        for x in [self.m, self.h, self.n]:
+            x.alpharate.I_tau *= 1 + sigma*np.random.randn(7)
+            x.betarate.I_tau *= 1 + sigma*np.random.randn(7)
+            
+        # Perturb maximal conductances
+        self.gna *= 1 + sigma*np.random.randn()
+        self.gk *= 1 + sigma*np.random.randn()
+        self.gl *= 1 + sigma*np.random.randn()
+        
+        # Perturb reversal potentials
+        
+        # Perturb voltage offsets?
+    
 class HHModel:
     """
         Hodgkin-Huxley model 
