@@ -22,8 +22,13 @@ class HHKinetics(ABC):
     def tau(self, V):
         return 1 / (self.alpha(V) + self.beta(V))
 
-    def vfield(self,V,x):
-        return self.alpha(V)*(1 - x) - self.beta(V)*x
+    def vfield(self,x,V,Vpos=[]):
+        if Vpos == []:   
+            # Intrinsic kinetics vector field
+            return self.alpha(V)*(1 - x) - self.beta(V)*x
+        else:
+            # Synaptic kinetics vector field
+            return self.alpha(V)*(1 - x) - self.beta(Vpos)*x
 
 class NeuroDynRate:
     """
@@ -140,7 +145,7 @@ class HHInactivation(HHKinetics):
 #     def kinetics(self,V,X):
 #         dx = np.array([])
 #         for n in range(np.size(self.gates)):
-#             dx.append(self.gates[n].vfield(V,X[n]))
+#             dx.append(self.gates[n].vfield(X[n],V))
 #         return dx
     
 #     def I(self,V,X):
@@ -236,19 +241,19 @@ class NeuroDynModel:
     def iL_ss(self,V):
         return self.gl*(V - self.El)
     
-    def vfield(self, V, m, h, n, I):
+    def vfield(self, x, I):
+        V, m, h, n = x
         dV = (-self.i_int(V, m, h, n) + I)/self.C_m
-        dm = self.m.vfield(V,m)
-        dh = self.h.vfield(V,h)
-        dn = self.n.vfield(V,n)
+        dm = self.m.vfield(m,V)
+        dh = self.h.vfield(h,V)
+        dn = self.n.vfield(n,V)
         return [dV, dm, dh, dn]
     
     def simulate(self, trange, x0, Iapp, mode="continuous"):
         # Note: Iapp should be a function of t, e.g., Iapp = lambda t : I0
         if mode == "continuous":
             def odesys(t, x):
-                V, m, h, n = x
-                return self.vfield(V, m, h, n, Iapp(t))
+                return self.vfield(x, Iapp(t))
             return solve_ivp(odesys, trange, x0)
         else:
             #... code forward-Euler integration
@@ -278,6 +283,7 @@ class NeuroDynModel:
         
         # Perturb voltage offsets?
         # Would add ~15mV sigma to each 'bias' voltage
+
 class HHModel:
     """
         Hodgkin-Huxley model 
@@ -310,8 +316,6 @@ class HHModel:
 #        def out(V):
 #            return self.gl*(V - self.El)
     
-    
-    
     # Default to nominal HH Nernst potentials and maximal conductances
     def __init__(self, gna = 120, gk = 36, gl = 0.3, Ena = 120, Ek = -12, El = 10.6, gates=[]):
         self.gna = gna
@@ -342,9 +346,54 @@ class HHModel:
     def iL_ss(self,V):
         return self.gl*(V - self.El)
 
-    def vfield(self, V, m, h, n, I):
+    def vfield(self, x, I):
+        V, m, h, n = x
         dV = -self.i_int(V, m, h, n) + I
-        dm = self.m.vfield(V,m)
-        dh = self.h.vfield(V,h)
-        dn = self.n.vfield(V,n)
+        dm = self.m.vfield(m,V)
+        dh = self.h.vfield(h,V)
+        dn = self.n.vfield(n,V)
         return [dV, dm, dh, dn]
+
+##### NETWORK-RELATED CLASSES #####
+
+class NeuroDynAMPA(NeuroDynActivation):
+    """
+    AMPA Synapse in the neurodyn chip.
+    Physiological values taken from Ermentrout et al. 2010, p. 161
+    """
+    def __init__(self,gsyn=1,Esyn=0,kappa=0.7,C=5e-12,Vt=26e-3,I_tau=33e-9):
+        self.gsyn = gsyn
+        self.Esyn = Esyn
+        # Physiological constants
+        Tmax, ar, ad, Kp, V_T = 0.001, 1.1, 0.19, 0.005, 0.002
+        dIb = [[Tmax*ar*C*Vt, 0, 0, 0, 0, 0, 0],
+               [0, Tmax*ad*C*Vt, 0, 0, 0, 0, 0]]
+        Vb = [V_T,-10,0,0,0,0,0] 
+        # IMPORTANT: WE CAN'T REALLY USE THE SIGMOIDS THIS WAY.
+        # WE NEED TO FIT THE 7 SIGMOIDS TO THE AMPA SIGMOID
+        super().__init__(dIb,kappa,C,Kp*kappa,Vb,I_tau)  
+
+class NeuronalNetwork:
+    """
+    Neuronal network class (biophysical or neuromorphic)
+    Arguments:
+        gapAdj : a gap junction adjacency matrix containing conductance values
+        synAdj : a synapse adjacency matrix containing 1's and 0's
+        syns : a matrix containing a list of synapse objects in each entry corresponding
+            to a 1 in synAdj
+    """
+    def __init__(self,neurons,gapAdj=[],synAdj=[],syns=[]):
+        self.neurons = neurons
+        self.gapAdj = gapAdj
+        self.synAdj = synAdj
+        self.syns = syns
+
+    # def vfield(self, x, I):
+        
+
+# class NeuroDynCascade(NeuronalNetwork):
+#     def __init__(self):
+#         neurons = [NeuroDynModel(),NeuroDynModel()]
+#         gapAdj = []
+#         synAdj = np.array([[0,1],[0,0]])
+#         synList = [[[],[NeuroDynAMPA()]],[],[]]
