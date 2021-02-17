@@ -167,17 +167,19 @@ class NeuroDynModel:
         self.Vt = 26e-3 # Unit Volt
         self.Res = 1.63e6 # Unit Ohm
         
-        # Digital parameters
-        self.dg = dg
-        self.dErev = dErev
-                
+        # Factor for converting digital to physical g
+        g_factor = (self.kappa / self.Vt) * (self.I_tau / 1024)
+        
+        # Factor for converting digital to physical Erev
+        E_factor = (self.I_voltage / 1024) * self.Res
+        
         # Convert digital to physical
-        self.gna = self.convert_conductance(dg[0])
-        self.gk = self.convert_conductance(dg[1])
-        self.gl = self.convert_conductance(dg[2])
-        self.Ena = self.convert_potential(dErev[0])
-        self.Ek = self.convert_potential(dErev[1])
-        self.El = self.convert_potential(dErev[2])
+        self.gna = dg[0] * g_factor
+        self.gk = dg[1] * g_factor
+        self.gl = dg[2] * g_factor
+        self.Ena = dErev[0] * E_factor + self.V_ref
+        self.Ek = dErev[1] * E_factor + self.V_ref
+        self.El = dErev[2] * E_factor + self.V_ref
         
         # Gating variable coefficients
         self.p = 3
@@ -200,18 +202,7 @@ class NeuroDynModel:
             self.m = gates[0]
             self.h = gates[1]
             self.n = gates[2]
-            
-    def convert_conductance(self, dg):
-        # Factor for converting digital to physical g
-        g_factor = (self.kappa / self.Vt) * (self.I_tau / 1024)
-        return dg * g_factor
-        
-        
-    def convert_potential(self, dErev):
-        # Factor for converting digital to physical Erev
-        E_factor = (self.I_voltage / 1024) * self.Res
-        return dErev * E_factor + self.V_ref
-    
+
     def get_default_Vb(self):
          # Bias voltages for the 7-point spline regression
         Vb = np.zeros(7) # Define the 7 bias voltages
@@ -227,15 +218,6 @@ class NeuroDynModel:
     def i_int(self,V, m, h, n):
         return self.gna*(m**self.p)*(h**self.q)*(V - self.Ena) + self.gk*(n**self.r)*(V - self.Ek) + self.gl*(V - self.El)
 
-    def iNa_ss(self,V):
-        return self.gna*self.m.inf(V)**3*self.h.inf(V)*(V - self.Ena)
-
-    def iK_ss(self,V):
-        return self.gk*self.n.inf(V)**4*(V - self.Ek)    
-
-    def iL_ss(self,V):
-        return self.gl*(V - self.El)
-    
     def vfield(self, V, m, h, n, I):
         dV = (-self.i_int(V, m, h, n) + I)/self.C_m
         dm = self.m.vfield(V,m)
@@ -257,27 +239,24 @@ class NeuroDynModel:
     def perturb(self,sigma=0.15):
         
         # Pertrub exponents
-        self.p = 3 + 0.2*np.random.randn()
-        self.q = 1 + 0.1*np.random.randn()
-        self.r = 4 + 0.2*np.random.randn()
+        self.p += 0.2*np.random.randn()
+        self.q += 0.1*np.random.randn()
+        self.r += 0.2*np.random.randn()
         
         # For each alpha/beta, perturb Itaus
         for x in [self.m, self.h, self.n]:
-            x.alpharate.I_tau = self.I_tau * (1 + sigma*np.random.randn(7))
-            x.betarate.I_tau = self.I_tau * (1 + sigma*np.random.randn(7))
+            x.alpharate.I_tau *= 1 + sigma*np.random.randn(7)
+            x.betarate.I_tau *= 1 + sigma*np.random.randn(7)
             
         # Perturb maximal conductances
-        self.gna = self.convert_conductance(self.dg[0]*(1 + sigma*np.random.randn()))
-        self.gk = self.convert_conductance(self.dg[1]*(1 + sigma*np.random.randn()))
-        self.gl = self.convert_conductance(self.dg[2]*(1 + sigma*np.random.randn()))
+        self.gna *= 1 + sigma*np.random.randn()
+        self.gk *= 1 + sigma*np.random.randn()
+        self.gl *= 1 + sigma*np.random.randn()
         
         # Perturb reversal potentials
-        self.Ena = self.convert_potential(self.dErev[0]*(1 + sigma*np.random.randn()))
-        self.Ek = self.convert_potential(self.dErev[1]*(1 + sigma*np.random.randn()))
-        self.El = self.convert_potential(self.dErev[2]*(1 + sigma*np.random.randn()))
         
         # Perturb voltage offsets?
-        # Would add ~15mV sigma to each 'bias' voltage
+    
 class HHModel:
     """
         Hodgkin-Huxley model 
