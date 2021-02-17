@@ -1,9 +1,11 @@
-#%% 
+
 from cb_models import NeuroDynModel
 import numpy as np
 import matplotlib.pyplot as plt
 
 ND = NeuroDynModel()
+np.random.seed(0)
+#ND.perturb()
 I0 = 0.0
 Iapp = lambda t : I0
 
