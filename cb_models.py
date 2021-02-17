@@ -154,10 +154,9 @@ class NeuroDynModel:
     
     def __init__(self, dg=[400, 160, 12], dErev=[450, -250, -150], gates=[]):
         self.V_ref = 0              # Unit V , 1 volt
-        self.I_tau = 33e-9       # Unit A
+        self.I_tau = 33e-9          # Unit A
         self.I_voltage = 230e-9     # Unit A
         self.I_ref = 15e-9          # Unit A
-        self.K = (0.127) * 1e-6     # Factor for the injecting current
         
         # Membrane & gate capacitances
         self.C_m = 4e-12 # Unit F
