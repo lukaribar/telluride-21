@@ -1,14 +1,19 @@
-
+#%%
 from cb_models import NeuroDynModel
 import numpy as np
 import matplotlib.pyplot as plt
 
 ND = NeuroDynModel()
 
-I0 = 0.0
+I0 = -1e-9
 Iapp = lambda t : I0
+def Ibump(t):
+    if t < 0.004:
+        return I0
+    else:
+        return I0 + 1e-3*t**2*np.exp(-(t-0.004)/1e-5)
 
-T = 0.01
+T = 0.02
 trange = (0, T)
 
 # Simulate different perturbed instances of the neuron
@@ -29,7 +34,7 @@ V1 = np.arange(-1,1,0.01)
 V2 = np.arange(-0.25,0.25,0.01)
 
 for i in range(5):
-    sol = ND.simulate(trange,[0,0,0,0],Iapp)
+    sol = ND.simulate(trange,[-0.175,0,0,0],Ibump)
     
     # Time plot
     plt.figure(1)
