@@ -227,6 +227,15 @@ class NeuroDynModel:
     def i_int(self,V, m, h, n):
         return self.gna*(m**self.p)*(h**self.q)*(V - self.Ena) + self.gk*(n**self.r)*(V - self.Ek) + self.gl*(V - self.El)
 
+    def iNa_ss(self,V):
+        return self.gna*self.m.inf(V)**3*self.h.inf(V)*(V - self.Ena)
+
+    def iK_ss(self,V):
+        return self.gk*self.n.inf(V)**4*(V - self.Ek)    
+
+    def iL_ss(self,V):
+        return self.gl*(V - self.El)
+    
     def vfield(self, V, m, h, n, I):
         dV = (-self.i_int(V, m, h, n) + I)/self.C_m
         dm = self.m.vfield(V,m)
