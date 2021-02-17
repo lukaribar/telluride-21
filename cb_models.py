@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod  # for abstract classes
+from scipy.integrate import solve_ivp
 import numpy as np
 from numpy import exp
 
@@ -21,17 +22,17 @@ class HHKinetics(ABC):
     def tau(self, V):
         return 1 / (self.alpha(V) + self.beta(V))
 
-    def diff(self,V,x):
+    def vfield(self,V,x):
         return self.alpha(V)*(1 - x) - self.beta(V)*x
 
 class NeuroDynRate:
     """
     NeuroDyn-type alpha or beta functions (kinetic rates)
     """
-    def __init__(self,dIb,kappa,V_T,Vb,I_tau,sign):
+    def __init__(self,dIb,kappa,Vt,Vb,I_tau,sign):
         self.dIb = dIb
         self.kappa = kappa  #global?
-        self.V_T = V_T  #global?
+        self.Vt = Vt  #global?
         self.Vb = Vb  #global?
         self.I_tau = np.array([I_tau]*7)
         self.sign = sign
@@ -40,40 +41,40 @@ class NeuroDynRate:
         I=0
         Ib = self.dIb*self.I_tau/1024
         for i in range(np.size(Ib)):
-            I += Ib[i] / (1 + np.exp(self.sign * self.kappa * (self.Vb[i] - V)  / self.V_T))
+            I += Ib[i] / (1 + np.exp(self.sign * self.kappa * (self.Vb[i] - V)  / self.Vt))
         return I     
 
 class NeuroDynActivation(HHKinetics):
     """
     NeuroDyn-type activation gating variable kinetics.
     """
-    def __init__(self,dIb,kappa,C,V_T,Vb,I_tau):
+    def __init__(self,dIb,kappa,C,Vt,Vb,I_tau):
         self.C = C
-        self.V_T = V_T
-        self.alpharate = NeuroDynRate(dIb[0],kappa,V_T,Vb,I_tau,1)
-        self.betarate = NeuroDynRate(dIb[1],kappa,V_T,Vb,I_tau,-1) 
+        self.Vt = Vt
+        self.alpharate = NeuroDynRate(dIb[0],kappa,Vt,Vb,I_tau,1)
+        self.betarate = NeuroDynRate(dIb[1],kappa,Vt,Vb,I_tau,-1) 
     
     def alpha(self,V):
-        return self.alpharate.I_rate(V) / (self.C * self.V_T)
+        return self.alpharate.I_rate(V) / (self.C * self.Vt)
 
     def beta(self,V):
-        return self.betarate.I_rate(V) / (self.C * self.V_T)
+        return self.betarate.I_rate(V) / (self.C * self.Vt)
     
 class NeuroDynInactivation(HHKinetics):
     """
     NeuroDyn-type activation gating variable kinetics.
     """
-    def __init__(self,dIb,kappa,C,V_T,Vb,I_tau):
+    def __init__(self,dIb,kappa,C,Vt,Vb,I_tau):
         self.C = C
-        self.V_T = V_T
-        self.alpharate = NeuroDynRate(dIb[0],kappa,V_T,Vb,I_tau,-1) 
-        self.betarate = NeuroDynRate(dIb[1],kappa,V_T,Vb,I_tau,1) 
+        self.Vt = Vt
+        self.alpharate = NeuroDynRate(dIb[0],kappa,Vt,Vb,I_tau,-1) 
+        self.betarate = NeuroDynRate(dIb[1],kappa,Vt,Vb,I_tau,1) 
     
     def alpha(self,V):
-        return self.alpharate.I_rate(V) / (self.C * self.V_T)
+        return self.alpharate.I_rate(V) / (self.C * self.Vt)
 
     def beta(self,V):
-        return self.betarate.I_rate(V) / (self.C * self.V_T)
+        return self.betarate.I_rate(V) / (self.C * self.Vt)
 
 class HHActivation(HHKinetics):
     """
@@ -139,7 +140,7 @@ class HHInactivation(HHKinetics):
 #     def kinetics(self,V,X):
 #         dx = np.array([])
 #         for n in range(np.size(self.gates)):
-#             dx.append(self.gates[n].diff(V,X[n]))
+#             dx.append(self.gates[n].vfield(V,X[n]))
 #         return dx
     
 #     def I(self,V,X):
@@ -188,43 +189,54 @@ class NeuroDynModel:
         
         if not gates:
             # Default to nominal NeuroDyn activation parameters
-            vb = self.get_default_vb()
+            Vb = self.get_default_Vb()
             dIb_m = [[0, 0, 120, 400, 800, 1023, 1023],
                      [1023, 1023, 1023, 1023, 0, 0, 0]]
             dIb_h = [[237, 5, 7, 6, 0, 0, 0],
                     [0, 0, 0, 0, 41, 25, 8]]
             dIb_n = [[0, 0, 0, 0, 80, 40, 250],
                     [4, 0, 0, 10, 0, 0, 4]]
-            self.m = NeuroDynActivation(dIb_m,self.kappa,self.C_gate,self.Vt,vb,self.I_tau)
-            self.h = NeuroDynInactivation(dIb_h,self.kappa,self.C_gate,self.Vt,vb,self.I_tau)
-            self.n = NeuroDynActivation(dIb_n,self.kappa,self.C_gate,self.Vt,vb,self.I_tau)
+            self.m = NeuroDynActivation(dIb_m,self.kappa,self.C_gate,self.Vt,Vb,self.I_tau)
+            self.h = NeuroDynInactivation(dIb_h,self.kappa,self.C_gate,self.Vt,Vb,self.I_tau)
+            self.n = NeuroDynActivation(dIb_n,self.kappa,self.C_gate,self.Vt,Vb,self.I_tau)
         else:
             self.m = gates[0]
             self.h = gates[1]
             self.n = gates[2]
-            
-    def get_default_vb(self):
+
+    def get_default_Vb(self):
          # Bias voltages for the 7-point spline regression
-        vb = np.zeros(7) # Define the 7 bias voltages
+        Vb = np.zeros(7) # Define the 7 bias voltages
         vHigh = self.V_ref + 0.426
         vLow = self.V_ref - 0.434
         I_factor = (vHigh - vLow) / 700e3
-        vb[0] = vLow + (I_factor * 50e3)
+        Vb[0] = vLow + (I_factor * 50e3)
         for i in range(1, 7):
-            vb[i] = vb[i-1] + (I_factor * 100e3)
+            Vb[i] = Vb[i-1] + (I_factor * 100e3)
             
-        return vb
+        return Vb
     
     def i_int(self,V, m, h, n):
         return self.gna*(m**self.p)*(h**self.q)*(V - self.Ena) + self.gk*(n**self.r)*(V - self.Ek) + self.gl*(V - self.El)
 
-    def dynamics(self, V, m, h, n, I):
-        dV = -self.i_int(V, m, h, n) + I
-        dm = self.m.diff(V,m)
-        dh = self.h.diff(V,h)
-        dn = self.n.diff(V,n)
+    def vfield(self, V, m, h, n, I):
+        dV = (-self.i_int(V, m, h, n) + I)/self.C_m
+        dm = self.m.vfield(V,m)
+        dh = self.h.vfield(V,h)
+        dn = self.n.vfield(V,n)
         return [dV, dm, dh, dn]
     
+    def simulate(self, trange, x0, Iapp, mode="continuous"):
+        # Note: Iapp should be a function of t, e.g., Iapp = lambda t : I0
+        if mode == "continuous":
+            def odesys(t, x):
+                V, m, h, n = x
+                return self.vfield(V, m, h, n, Iapp(t))
+            return solve_ivp(odesys, trange, x0)
+        else:
+            #... code forward-Euler integration
+            return
+
     def perturb(self,sigma=0.15):
         
         # Pertrub exponents
@@ -310,9 +322,9 @@ class HHModel:
     def iL_ss(self,V):
         return self.gl*(V - self.El)
 
-    def dynamics(self, V, m, h, n, I):
+    def vfield(self, V, m, h, n, I):
         dV = -self.i_int(V, m, h, n) + I
-        dm = self.m.diff(V,m)
-        dh = self.h.diff(V,h)
-        dn = self.n.diff(V,n)
+        dm = self.m.vfield(V,m)
+        dh = self.h.vfield(V,h)
+        dn = self.n.vfield(V,n)
         return [dV, dm, dh, dn]
