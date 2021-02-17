@@ -41,7 +41,7 @@ class NeuroDynRate:
         Ib = self.dIb*self.I_tau/1024
         for i in range(np.size(Ib)):
             I += Ib[i] / (1 + np.exp(self.sign * self.kappa * (self.Vb[i] - V)  / self.V_T))
-        return I     
+        return I
 
 class NeuroDynActivation(HHKinetics):
     """
@@ -153,10 +153,9 @@ class NeuroDynModel:
     
     def __init__(self, dg=[400, 160, 12], dErev=[450, -250, -150], gates=[]):
         self.V_ref = 0              # Unit V , 1 volt
-        self.I_tau = 33e-9       # Unit A
+        self.I_tau = 33e-9          # Unit A
         self.I_voltage = 230e-9     # Unit A
         self.I_ref = 15e-9          # Unit A
-        self.K = (0.127) * 1e-6     # Factor for the injecting current
         
         # Membrane & gate capacitances
         self.C_m = 4e-12 # Unit F
@@ -219,7 +218,7 @@ class NeuroDynModel:
         return self.gna*(m**self.p)*(h**self.q)*(V - self.Ena) + self.gk*(n**self.r)*(V - self.Ek) + self.gl*(V - self.El)
 
     def dynamics(self, V, m, h, n, I):
-        dV = -self.i_int(V, m, h, n) + I
+        dV = (-self.i_int(V, m, h, n) + I) / self.C_m
         dm = self.m.diff(V,m)
         dh = self.h.diff(V,h)
         dn = self.n.diff(V,n)
