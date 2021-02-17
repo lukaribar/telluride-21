@@ -73,33 +73,32 @@ A = np.array([K_bf[ind_start:ind_end]]).T
 Apinv = np.linalg.pinv(A)
 sol = Apinv.dot(Islow_HH[ind_start:ind_end]-Ifast_C[ind_start:ind_end])
 
+# slow IV curve for corrected HH model
 HH_C.gk = sol[0]
 Islow_C = Ifast_C + HH_C.iK_ss(V)
 
-# Find local maximum of the fast nominal fast IV curve
-Ifast_HH_grad = np.gradient(Ifast_HH) / vstep
-th_index = (np.diff(np.sign(Ifast_HH_grad)) < 0).nonzero()[0][0]
-Vth = V[th_index]
-print(Vth)
+# Luka's code
+# # Find local maximum of the fast nominal fast IV curve
+# Ifast_HH_grad = np.gradient(Ifast_HH) / vstep
+# th_index = (np.diff(np.sign(Ifast_HH_grad)) < 0).nonzero()[0][0]
+# Vth = V[th_index]
+# print(Vth)
 
-# Adjust gna in the calibrated model to keep Vth const
-Ileak_P_grad = np.gradient(HH_P.iL_ss(V))[th_index] / vstep
-Ina_P_grad = np.gradient(HH_P.iNa_ss(V))[th_index] / vstep
-HH_C.gna = HH_C.gna * (-Ileak_P_grad/Ina_P_grad)
+# # Adjust gna in the calibrated model to keep Vth const
+# Ileak_P_grad = np.gradient(HH_P.iL_ss(V))[th_index] / vstep
+# Ina_P_grad = np.gradient(HH_P.iNa_ss(V))[th_index] / vstep
+# HH_C.gna = HH_C.gna * (-Ileak_P_grad/Ina_P_grad)
 
-# Calibrated fast IV curve
-Ifast_C = HH_C.iL_ss(V) + HH_C.iNa_ss(V)
+# # Calibrated fast IV curve
+# Ifast_C = HH_C.iL_ss(V) + HH_C.iNa_ss(V)
  
-# Adjust gk in the calibrated model to keep Islow slope around Vth const
-Islow_grad = np.gradient(Islow_HH) / vstep
-desired_slope = Islow_grad[th_index]
-Ifast_C_grad = np.gradient(Ifast_C) / vstep
-desired_slope_k = desired_slope - Ifast_C_grad[th_index]
-k_C_grad = np.gradient(HH_P.iK_ss(V))[th_index] / vstep
-HH_C.gk = HH_C.gk * (desired_slope_k / k_C_grad)
-
-# Calibrated slow IV curve
-Islow_C = Ifast_C + HH_C.iK_ss(V)
+# # Adjust gk in the calibrated model to keep Islow slope around Vth const
+# Islow_grad = np.gradient(Islow_HH) / vstep
+# desired_slope = Islow_grad[th_index]
+# Ifast_C_grad = np.gradient(Ifast_C) / vstep
+# desired_slope_k = desired_slope - Ifast_C_grad[th_index]
+# k_C_grad = np.gradient(HH_P.iK_ss(V))[th_index] / vstep
+# HH_C.gk = HH_C.gk * (desired_slope_k / k_C_grad)
 
 plt.figure()
 plt.plot(V, Ifast_HH, V, Ifast_P, V, Ifast_C)
@@ -108,7 +107,7 @@ plt.figure()
 plt.plot(V, Islow_HH, V, Islow_P, V, Islow_C)
 plt.legend(['HH','perturbed HH','corrected perturbed HH'])
 
-# Simulation
+#%% Simulation
 # Define length of the simulation (in ms)
 T = 500
 
@@ -152,3 +151,5 @@ plt.plot(sol_HH_C.t, sol_HH_C.y[0],'green')
 plt.legend(['corrected perturbed HH'])
 # plt.figure()
 # plt.plot(sol_HH.t, ramp(sol_HH.t))
+
+# %%
