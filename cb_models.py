@@ -388,7 +388,75 @@ class NeuronalNetwork:
         self.synAdj = synAdj
         self.syns = syns
 
-    # def vfield(self, x, I):
+    def vfield(self, x, I):
+        dx = []
+        dx_syn = []
+        
+        idx_syn = 0
+        
+        # Iterate through all neurons
+        # Note: need to take into account number of states if not const 4
+        for i, neuron_i in enumerate(self.neurons):
+            i_syn = 0
+            i_gap = 0
+            
+            for j, neuron_j in enumerate(self.neurons):
+                if (self.synAdj[i][j]):
+                    for syn in self.syns[i][j]:
+                        # how to find activation x
+                        # how to find vpost
+                        i_syn += syn.out(activation, x[i*4])
+                        dx_syn.append(syn.vfield())
+                        
+                i_gap += self.gapAjd[i][j] * (x[j*4] - x[i*4])
+                
+            Iext = I[i] + i_syn + i_gap
+            dx.append(neuron_i.vfield(x[4*i:4*(i+1)], Iext))
+            
+        # Iterate through all synapses
+        for i in range(n):
+            for j in range(n):
+                if ()
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
 
 # class NeuroDynCascade(NeuronalNetwork):
