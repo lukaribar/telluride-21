@@ -373,6 +373,49 @@ class NeuroDynAMPA(NeuroDynActivation):
         # WE NEED TO FIT THE 7 SIGMOIDS TO THE AMPA SIGMOID
         super().__init__(dIb,kappa,C,Kp*kappa,Vb,I_tau)  
 
+class AMPA(HHKinetics):
+    """
+    AMPA gating variable kinetics  
+    Physiological values taken from Ermentrout et al. 2010, p. 161
+    Note: Voltage values need to be shifted +65mV
+    """
+    def __init__(self,Tmax=1,Kp=5,V_T=2+65,ar=1.1,ad=0.19):
+        self.Tmax = Tmax
+        self.Kp = Kp
+        self.V_T = V_T
+        self.ar = ar        
+        self.ad = ad
+
+    def alpha(self,V):
+        return self.ar * self.Tmax / (1+np.exp(-(V-self.V_T)/self.Kp))
+
+    def beta(self,V):
+        return self.ad
+
+# Could be derived from general conductance class if we code it?
+class Synapse:
+    """
+    Arbitrary synapse class
+    Arguments:
+        gsyn: maximal conductance
+        Esyn: synapse reversal potential
+        r: synapse activation kinetics
+    """
+    def __init__(self, gsyn, Esyn, r):
+        self.gsyn = gsyn
+        self.Esyn = Esyn
+        self.r = r # HHKinetics class
+        
+    def Iout(self, r, Vpost):
+        return self.gsyn * r * (Vpost - self.Esyn)
+
+class AMPASynapse(Synapse):
+    """
+    AMPA synapse with parameters taken from Ermentrout et al. 2010, p. 161
+    """
+    def __init__(self, gsyn):
+        super().__init__(gsyn, 65, AMPA())
+        
 class NeuronalNetwork:
     """
     Neuronal network class (biophysical or neuromorphic)
@@ -388,9 +431,46 @@ class NeuronalNetwork:
         self.synAdj = synAdj
         self.syns = syns
 
-    # def vfield(self, x, I):
+    def vfield(self, x, I):
+        dx = []
+        dx_syn = []
         
-
+        idx_syn = len(self.neurons)*4 # synapse states start after neural states
+        
+        # Iterate through all neurons
+        # Note: need to take into account number of states if not const 4
+        for i, neuron_i in enumerate(self.neurons):
+            i_syn = 0
+            i_gap = 0
+            
+            Vpost = x[i*4]
+            for j, neuron_j in enumerate(self.neurons):
+                Vpre = x[j*4]
+                if (self.synAdj[i][j]):
+                    for syn in self.syns[i][j]:
+                        r = x[idx_syn] # activation of the synapse
+                        i_syn += syn.Iout(r, Vpost)
+                        dx_syn.append(syn.r.vfield(r, Vpre, Vpost))
+                        idx_syn += 1
+                
+                if (self.gapAdj != []):
+                    i_gap += self.gapAdj[i][j] * (Vpost - Vpre)
+                
+            Iext = I[i] - i_syn - i_gap
+            dx.extend(neuron_i.vfield(x[4*i:4*(i+1)], Iext))
+            
+        dx.extend(dx_syn)
+        return dx
+        
+    def simulate(self, trange, x0, Iapp, mode="continuous"):
+        # Note: Iapp should be a function of t, e.g., Iapp = lambda t : I0
+        if mode == "continuous":
+            def odesys(t, x):
+                return self.vfield(x, Iapp(t))
+            return solve_ivp(odesys, trange, x0)
+        else:
+            #... code forward-Euler integration
+            return
 # class NeuroDynCascade(NeuronalNetwork):
 #     def __init__(self):
 #         neurons = [NeuroDynModel(),NeuroDynModel()]
