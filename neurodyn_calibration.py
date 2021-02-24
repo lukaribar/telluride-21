@@ -1,7 +1,53 @@
 #%%
-from cb_models import NeuroDynModel
+from cb_models import *
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.optimize import nnls
+
+# Fitting the HH activation functions
+# This should eventually become part of the initialization of 
+# Neurodyn activation / inactivation kinetics.
+
+ND = NeuroDynModel()
+HH = HHModel()
+kappa,C,Vt,I_tau,I_ref,V_ref = ND.get_default_rate_pars()
+
+# Notice multiplications/divisions by 1e3 to convert from mV to V
+m = HHActivation(25/1e3+V_ref, 0.1*1e3, 10/1e3, 0+V_ref, 4, 18/1e3)
+
+# Maybe we could automatize this by adding vHigh and vLow
+# (or their average) as a free parameter to be optimized for. 
+Vb = np.zeros(7)
+vHigh = V_ref  + HH.Ena/1e3  + 0.1
+vLow = V_ref   + HH.Ek/1e3   - 0.1 
+I_factor = (vHigh - vLow) / 700e3
+Vb[0] = vLow + (I_factor * 50e3)
+for i in range(1, 7):
+    Vb[i] = Vb[i-1] + (I_factor * 100e3)
+
+V = np.arange(start=V_ref+HH.Ek/1e3, stop=V_ref+HH.Ena/1e3, step=5e-4).T
+
+A_alpha = np.zeros((np.size(V),7))
+A_beta = np.zeros((np.size(V),7))
+b_alpha = m.alpha(V) / np.amax(m.alpha(V)) 
+b_beta = m.beta(V) / np.amax(m.beta(V))
+for i in range(7):
+    A_alpha[:,i] = 1 / (1 + np.exp(1 * kappa * (Vb[i] - V)  / Vt))
+    A_beta[:,i] = 1 / (1 + np.exp(-1 * kappa * (Vb[i] - V)  / Vt))
+Ib_alpha = nnls(A_alpha,b_alpha)[0]
+Ib_beta = nnls(A_beta,b_beta)[0]
+
+plt.figure()
+plt.plot(V,b_alpha)
+plt.plot(V,np.dot(A_alpha,Ib_alpha))
+plt.plot(V,A_alpha,'black')
+
+plt.figure()
+plt.plot(V,b_beta)
+plt.plot(V,np.dot(A_beta,Ib_beta))
+plt.plot(V,A_beta,'black')
+
+#%%
 
 ND = NeuroDynModel()
 
