@@ -378,7 +378,7 @@ class AMPA(HHKinetics):
     AMPA gating variable kinetics  
     Physiological values taken from Ermentrout et al. 2010, p. 161
     """
-    def _init_(self,Tmax=1,Kp=5,V_T=2,ar=1.1,ad=0.19):
+    def __init__(self,Tmax=1,Kp=5,V_T=2,ar=1.1,ad=0.19):
         self.Tmax = Tmax
         self.Kp = Kp
         self.V_T = V_T
@@ -406,7 +406,14 @@ class Synapse:
         self.r = r # HHKinetics class
         
     def Iout(self, r, Vpost):
-        return self.gysn * r * (Vpost - self.Esyn)
+        return self.gsyn * r * (Vpost - self.Esyn)
+
+class AMPASynapse(Synapse):
+    """
+    AMPA synapse with parameters taken from Ermentrout et al. 2010, p. 161
+    """
+    def __init__(self, gsyn):
+        super().__init__(gsyn, 0, AMPA())
         
 class NeuronalNetwork:
     """
@@ -444,15 +451,25 @@ class NeuronalNetwork:
                         i_syn += syn.Iout(r, Vpost)
                         dx_syn.append(syn.r.vfield(r, Vpre, Vpost))
                         idx_syn += 1
-                        
-                i_gap += self.gapAjd[i][j] * (Vpre - Vpost)
+                
+                if (self.gapAdj != []):
+                    i_gap += self.gapAdj[i][j] * (Vpre - Vpost)
                 
             Iext = I[i] + i_syn + i_gap
-            dx.append(neuron_i.vfield(x[4*i:4*(i+1)], Iext))
+            dx.extend(neuron_i.vfield(x[4*i:4*(i+1)], Iext))
             
-        dx.append(dx_syn)
+        dx.extend(dx_syn)
         return dx
         
+    def simulate(self, trange, x0, Iapp, mode="continuous"):
+        # Note: Iapp should be a function of t, e.g., Iapp = lambda t : I0
+        if mode == "continuous":
+            def odesys(t, x):
+                return self.vfield(x, Iapp(t))
+            return solve_ivp(odesys, trange, x0)
+        else:
+            #... code forward-Euler integration
+            return
 # class NeuroDynCascade(NeuronalNetwork):
 #     def __init__(self):
 #         neurons = [NeuroDynModel(),NeuroDynModel()]
