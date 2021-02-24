@@ -378,7 +378,7 @@ class AMPA(HHKinetics):
     AMPA gating variable kinetics  
     Physiological values taken from Ermentrout et al. 2010, p. 161
     """
-    def _init_(self,Tmax=0.001,Kp=0.005,V_T=0.002,ar=1.1,ad=0.19):
+    def _init_(self,Tmax=1,Kp=5,V_T=2,ar=1.1,ad=0.19):
         self.Tmax = Tmax
         self.Kp = Kp
         self.V_T = V_T
