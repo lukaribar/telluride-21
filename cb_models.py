@@ -373,6 +373,23 @@ class NeuroDynAMPA(NeuroDynActivation):
         # WE NEED TO FIT THE 7 SIGMOIDS TO THE AMPA SIGMOID
         super().__init__(dIb,kappa,C,Kp*kappa,Vb,I_tau)  
 
+# Could be derived from general conductance class if we code it?
+class Synapse:
+    """
+    Arbitrary synapse class
+    Arguments:
+        gsyn: maximal conductance
+        Esyn: synapse reversal potential
+        r: synapse activation kinetics
+    """
+    def __init__(self, gsyn, Esyn, r):
+        self.gsyn = gsyn
+        self.Esyn = Esyn
+        self.r = r # HHKinetics class
+        
+    def Iout(self, r, Vpost):
+        return self.gysn * r * (Vpost - self.Esyn)
+        
 class NeuronalNetwork:
     """
     Neuronal network class (biophysical or neuromorphic)
@@ -392,7 +409,7 @@ class NeuronalNetwork:
         dx = []
         dx_syn = []
         
-        idx_syn = len(self.neurons)*4 # x index of first synapse activation
+        idx_syn = len(self.neurons)*4 # synapse states start after neural states
         
         # Iterate through all neurons
         # Note: need to take into account number of states if not const 4
@@ -400,14 +417,17 @@ class NeuronalNetwork:
             i_syn = 0
             i_gap = 0
             
+            Vpost = x[i*4]
             for j, neuron_j in enumerate(self.neurons):
+                Vpre = x[j*4]
                 if (self.synAdj[i][j]):
                     for syn in self.syns[i][j]:
-                        i_syn += syn.out(x[idx_syn], x[i*4]) # r, Vpost
-                        dx_syn.append(syn.vfield())
+                        r = x[idx_syn] # activation of the synapse
+                        i_syn += syn.Iout(r, Vpost)
+                        dx_syn.append(syn.r.vfield(r, Vpre, Vpost))
                         idx_syn += 1
                         
-                i_gap += self.gapAjd[i][j] * (x[j*4] - x[i*4])
+                i_gap += self.gapAjd[i][j] * (Vpre - Vpost)
                 
             Iext = I[i] + i_syn + i_gap
             dx.append(neuron_i.vfield(x[4*i:4*(i+1)], Iext))
@@ -415,46 +435,6 @@ class NeuronalNetwork:
         dx.append(dx_syn)
         return dx
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
 # class NeuroDynCascade(NeuronalNetwork):
 #     def __init__(self):
 #         neurons = [NeuroDynModel(),NeuroDynModel()]
