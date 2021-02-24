@@ -245,6 +245,9 @@ class NeuroDynModel:
         # Factor for converting digital to physical Erev
         E_factor = (self.I_voltage / 1024) * self.Res
         return dErev * E_factor + self.V_ref
+
+    def get_default_rate_pars(self):
+        return self.kappa, self.C_gate, self.Vt, self.I_tau, self.I_ref,self.V_ref
     
     def get_default_Vb(self):
          # Bias voltages for the 7-point spline regression
