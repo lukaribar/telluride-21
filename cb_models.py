@@ -377,8 +377,9 @@ class AMPA(HHKinetics):
     """
     AMPA gating variable kinetics  
     Physiological values taken from Ermentrout et al. 2010, p. 161
+    Note: Voltage values need to be shifted +65mV
     """
-    def __init__(self,Tmax=1,Kp=5,V_T=2,ar=1.1,ad=0.19):
+    def __init__(self,Tmax=1,Kp=5,V_T=2+65,ar=1.1,ad=0.19):
         self.Tmax = Tmax
         self.Kp = Kp
         self.V_T = V_T
@@ -413,7 +414,7 @@ class AMPASynapse(Synapse):
     AMPA synapse with parameters taken from Ermentrout et al. 2010, p. 161
     """
     def __init__(self, gsyn):
-        super().__init__(gsyn, 0, AMPA())
+        super().__init__(gsyn, 65, AMPA())
         
 class NeuronalNetwork:
     """
@@ -453,9 +454,9 @@ class NeuronalNetwork:
                         idx_syn += 1
                 
                 if (self.gapAdj != []):
-                    i_gap += self.gapAdj[i][j] * (Vpre - Vpost)
+                    i_gap += self.gapAdj[i][j] * (Vpost - Vpre)
                 
-            Iext = I[i] + i_syn + i_gap
+            Iext = I[i] - i_syn - i_gap
             dx.extend(neuron_i.vfield(x[4*i:4*(i+1)], Iext))
             
         dx.extend(dx_syn)

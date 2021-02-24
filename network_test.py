@@ -5,14 +5,14 @@ neuron1 = HHModel()
 neuron2 = HHModel()
 neurons = [neuron1, neuron2]
 
-syn = AMPASynapse(0)
+syn = AMPASynapse(0.05)
 
-synAdj = [[0, 1], [0, 0]]
-syns = [[[], [syn]], [[],[]]]
+synAdj = [[0, 0], [1, 0]]
+syns = [[[], []], [[syn],[]]]
 
 network = NeuronalNetwork(neurons, synAdj=synAdj, syns=syns)
 
-T = 50
+T = 200
 trange = (0, T)
 
 I1 = 10
