@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod  # for abstract classes
 from scipy.integrate import solve_ivp
+from scipy.optimize import nnls
 import numpy as np
 from numpy import exp
 
@@ -52,18 +53,46 @@ class NeuroDynRate:
 class NeuroDynActivation(HHKinetics):
     """
     NeuroDyn-type activation gating variable kinetics.
+    There are two ways of initializing the object:
+        1)  By passing an object of HHKinetics type whose alpha/beta
+            functions are used to find the values of dIb
+        2)  By passing dIb manually
     """
-    def __init__(self,dIb,kappa,C,Vt,Vb,I_tau):
+    def __init__(self,*args):
+        if isinstance(args[0],HHKinetics):
+            x,kappa,C,Vt,Vb,I_tau = args
+            dIb_alpha,dIb_beta = self.fit(x,kappa,C,Vt,Vb,I_tau)
+        else:
+            dIb,kappa,C,Vt,Vb,I_tau = args
+            dIb_alpha = dIb[0]
+            dIb_beta = dIb[1]
+        
         self.C = C
-        self.Vt = Vt
-        self.alpharate = NeuroDynRate(dIb[0],kappa,Vt,Vb,I_tau,1)
-        self.betarate = NeuroDynRate(dIb[1],kappa,Vt,Vb,I_tau,-1) 
+        self.Vt = Vt    
+        self.I_tau = I_tau
+        self.alpharate = NeuroDynRate(dIb_alpha,kappa,Vt,Vb,I_tau,1)
+        self.betarate = NeuroDynRate(dIb_beta,kappa,Vt,Vb,I_tau,-1) 
     
     def alpha(self,V):
         return self.alpharate.I_rate(V) / (self.C * self.Vt)
 
     def beta(self,V):
         return self.betarate.I_rate(V) / (self.C * self.Vt)
+
+    def fit(self,x,kappa,C,Vt,Vb,I_tau):
+        V = np.arange(start=-0.015, stop=0.15, step=5e-4).T
+        A_alpha = np.zeros((np.size(V),7))
+        A_beta = np.zeros((np.size(V),7))
+        b_alpha = x.alpha(V) / np.amax(x.alpha(V)) 
+        b_beta = x.beta(V) / np.amax(x.beta(V))
+        for i in range(7):
+           A_alpha[:,i] = 1 / (1 + np.exp(1 * kappa * (Vb[i] - V)  / Vt))
+           A_beta[:,i] = 1 / (1 + np.exp(-1 * kappa * (Vb[i] - V)  / Vt))
+        Ib_alpha = nnls(A_alpha,b_alpha)[0]
+        Ib_beta = nnls(A_beta,b_beta)[0]
+
+        return Ib_alpha,Ib_beta
+        #quantize and adjust for Itau
     
 class NeuroDynInactivation(HHKinetics):
     """
