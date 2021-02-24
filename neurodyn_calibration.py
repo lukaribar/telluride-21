@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 ND = NeuroDynModel()
 
-I0 = -1e-9
+I0 = 0
 Iapp = lambda t : I0
 def Ibump(t):
     if t < 0.004:
@@ -33,8 +33,8 @@ fig3.suptitle('IV curves')
 V1 = np.arange(-1,1,0.01)
 V2 = np.arange(-0.25,0.25,0.01)
 
-for i in range(5):
-    sol = ND.simulate(trange,[-0.175,0,0,0],Ibump)
+for i in range(1):
+    sol = ND.simulate(trange,[-0.175,0,0,0],Iapp)
     
     # Time plot
     plt.figure(1)
