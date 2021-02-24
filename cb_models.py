@@ -373,6 +373,24 @@ class NeuroDynAMPA(NeuroDynActivation):
         # WE NEED TO FIT THE 7 SIGMOIDS TO THE AMPA SIGMOID
         super().__init__(dIb,kappa,C,Kp*kappa,Vb,I_tau)  
 
+class AMPA(HHKinetics):
+    """
+    AMPA gating variable kinetics  
+    Physiological values taken from Ermentrout et al. 2010, p. 161
+    """
+    def _init_(self,Tmax=0.001,Kp=0.005,V_T=0.002,ar=1.1,ad=0.19):
+        self.Tmax = Tmax
+        self.Kp = Kp
+        self.V_T = V_T
+        self.ar = ar        
+        self.ad = ad
+
+    def alpha(self,V):
+        return self.ar * self.Tmax / (1+np.exp(-(V-self.V_T)/self.Kp))
+
+    def beta(self,V):
+        return self.ad
+
 # Could be derived from general conductance class if we code it?
 class Synapse:
     """
