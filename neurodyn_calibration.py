@@ -2,7 +2,7 @@
 from cb_models import *
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.optimize import nnls, minimize
+from scipy.optimize import nnls, minimize, Bounds
 
 # Fitting the HH activation functions
 # This should eventually become part of the initialization of 
@@ -11,43 +11,23 @@ from scipy.optimize import nnls, minimize
 ND = NeuroDynModel()
 HH = HHModel()
 kappa,C,Vt,I_tau,I_ref,V_ref = ND.get_default_rate_pars()
-kappa = 1.2
+kappa = 2
 
+# Create gating variables to be fit
 # Notice multiplications/divisions by 1e3 to convert from mV to V
 m = HHActivation(25/1e3+V_ref, 0.1*1e3, 10/1e3, 0/1e3+V_ref, 4, 18/1e3)
 h = HHInactivation(0/1e3+V_ref, 0.07, 20/1e3, 30/1e3+V_ref, 1, 10/1e3)
 n = HHActivation(10/1e3+V_ref, 0.01*1e3, 10/1e3, 0/1e3+V_ref, 0.125, 80/1e3)
-
 X = [m,h,n]
 
-# Maybe we could automatize this by adding vHigh and vLow
-# (or their average) as a free parameter to be optimized for. 
-# Vb = np.zeros(7)
-# vHigh = V_ref  + HH.Ena/1e3  + 0.1
-# vLow = V_ref   + HH.Ek/1e3   - 0.1 
-# I_factor = (vHigh - vLow) / 700e3
-# Vb[0] = vLow + (I_factor * 50e3)
-# for i in range(1, 7):
-#     Vb[i] = Vb[i-1] + (I_factor * 100e3)
-
-# V = np.arange(start=V_ref+HH.Ek/1e3, stop=V_ref+HH.Ena/1e3, step=5e-4).T
-
-# A_alpha = np.zeros((np.size(V),7))
-# A_beta = np.zeros((np.size(V),7))
-# b_alpha = m.alpha(V) / np.amax(m.alpha(V)) 
-# b_beta = m.beta(V) / np.amax(m.beta(V))
-# for i in range(7):
-#     A_alpha[:,i] = 1 / (1 + np.exp(1 * kappa * (Vb[i] - V)  / Vt))
-#     A_beta[:,i] = 1 / (1 + np.exp(-1 * kappa * (Vb[i] - V)  / Vt))
-# Ib_alpha = nnls(A_alpha,b_alpha)[0]
-# Ib_beta = nnls(A_beta,b_beta)[0]
-
+# Output of sum of sigmoids
 def I_rate(Vrange,c,sign,kappa,Vhalf):
     I=0
     for i in range(len(Vhalf)):
         I += c[i] / (1 + np.exp(sign * kappa * (Vhalf[i] - Vrange)  / Vt))
     return I
 
+# Cost function
 def cost(Z,X,Vrange,kappa,Vt):
     """
     inputs:
@@ -67,33 +47,44 @@ def cost(Z,X,Vrange,kappa,Vt):
     for i, x in enumerate(X):
         c_a = Z[i*7:(i+1)*7]
         c_b = Z[len(X)*7+i*7:len(X)*7+(i+1)*7]
-        if isinstance(x,HHActivation):
-            out += sum(((x.alpha(Vrange) - I_rate(Vrange,c_a,1,kappa,Vhalf))/max(x.alpha(Vrange)))**2)
-            out += sum(((x.beta(Vrange) - I_rate(Vrange,c_b,-1,kappa,Vhalf))/max(x.alpha(Vrange)))**2)     
+        norm_a = max(x.alpha(Vrange))
+        norm_b = max(x.beta(Vrange))        
+        if isinstance(x,HHActivation):    
+            out += sum(((x.alpha(Vrange) - I_rate(Vrange,c_a,1,kappa,Vhalf))/norm_a)**2) 
+            out += sum(((x.beta(Vrange) - I_rate(Vrange,c_b,-1,kappa,Vhalf))/norm_b)**2) 
         else:
-            out += sum(((x.alpha(Vrange) - I_rate(Vrange,c_a,-1,kappa,Vhalf))/max(x.alpha(Vrange)))**2)
-            out += sum(((x.beta(Vrange) - I_rate(Vrange,c_b,1,kappa,Vhalf))/max(x.alpha(Vrange)))**2)  
+            out += sum(((x.alpha(Vrange) - I_rate(Vrange,c_a,-1,kappa,Vhalf))/norm_a)**2) 
+            out += sum(((x.beta(Vrange) - I_rate(Vrange,c_b,1,kappa,Vhalf))/norm_b)**2)  
 
     return out  
 
+# Range to do the fit
+Vstart = -0.02  # V_ref+HH.Ek/1e3
+Vend   = 0.08   # V_ref+HH.Ena/1e3
+Vrange = np.arange(start=Vstart, stop=Vend, step=5e-4).T
+
 # Initial parameter values
-C_a = [0.25*np.ones(7)]*len(X)
-C_b = [0.25*np.ones(7)]*len(X)
-Vmean = V_ref #(V_ref+HH.Ek/1e3 + V_ref+HH.Ena/1e3)/2
+C_a = np.array([])
+C_b = np.array([])
+for i, x in enumerate(X):
+    C_a = np.append(C_a,max(x.alpha(Vrange))*np.ones(7)/7)
+    C_b = np.append(C_b,max(x.beta(Vrange))*np.ones(7)/7)
+Vmean = V_ref   #(V_ref+HH.Ek/1e3 + V_ref+HH.Ena/1e3)/2
 Vstep = (V_ref+HH.Ena/1e3 - V_ref+HH.Ek/1e3)/100
-Z0 = np.concatenate(C_a)
-Z0 = np.append(Z0,C_b)
-Z0 = np.append(Z0,np.array([Vmean,Vstep]))
+Z0 = np.concatenate([C_a,C_b,np.array([Vmean,Vstep])])
 
-Vrange = np.arange(start=V_ref+HH.Ek/1e3, stop=V_ref+HH.Ena/1e3, step=5e-4).T
+lowerbd = np.append(np.zeros(14*len(X)),np.array([-np.inf,-np.inf]))
+upperbd = np.append(np.ones(14*len(X))*np.inf,np.array([np.inf,np.inf]))
+bd = Bounds(lowerbd,upperbd)
 
-Z = minimize(lambda Z : cost(Z,X,Vrange,kappa,Vt), Z0).x
+Z = minimize(lambda Z : cost(Z,X,Vrange,kappa,Vt), Z0, bounds = bd)
+Z = Z.x
 #%%
 
 Vmean = Z[-2]
 Vstep = Z[-1]
-print(Vstep)
 Vhalf = Vmean + np.arange(start=-3,stop=4,step=1)*Vstep
+
 for i,x in enumerate(X):
     c_a = Z[i*7:(i+1)*7]
     c_b = Z[len(X)*7+i*7:len(X)*7+(i+1)*7]
@@ -111,6 +102,9 @@ for i,x in enumerate(X):
     plt.figure()
     plt.plot(Vrange,x.beta(Vrange))
     plt.plot(Vrange,beta)
+
+print("Vstep:", Vstep)
+print("Vmean:", Vmean)
 
 # plt.figure()
 # plt.plot(Vrange,b_alpha)
