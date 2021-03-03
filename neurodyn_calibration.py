@@ -7,7 +7,7 @@ from scipy.optimize import nnls, minimize, Bounds
 ND = NeuroDynModel()
 HH = HHModel()
 kappa,C,Vt,I_tau,I_ref,V_ref = ND.get_default_rate_pars()
-kappa = 2
+kappa = 1.7
 
 #%% Finding optimal Vstep and Vmean and initial parameters for coefficients
 
@@ -77,7 +77,7 @@ bd = Bounds(lowerbd,upperbd)
 
 Z = minimize(lambda Z : cost(Z,X,Vrange,kappa,Vt), Z0, bounds = bd)
 Z = Z.x
-#%% Plot the results
+#%% Plot the nonlinear fitting results
 
 Vmean = Z[-2]
 Vstep = Z[-1]
