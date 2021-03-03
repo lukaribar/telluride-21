@@ -4,14 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import nnls, minimize, Bounds
 
-# Fitting the HH activation functions
-# This should eventually become part of the initialization of 
-# Neurodyn activation / inactivation kinetics.
-
 ND = NeuroDynModel()
 HH = HHModel()
 kappa,C,Vt,I_tau,I_ref,V_ref = ND.get_default_rate_pars()
 kappa = 2
+
+#%% Finding optimal Vstep and Vmean and initial parameters for coefficients
 
 # Create gating variables to be fit
 # Notice multiplications/divisions by 1e3 to convert from mV to V
@@ -59,7 +57,7 @@ def cost(Z,X,Vrange,kappa,Vt):
     return out  
 
 # Range to do the fit
-Vstart = -0.02  # V_ref+HH.Ek/1e3
+Vstart = V_ref+HH.Ek/1e3
 Vend   = 0.08   # V_ref+HH.Ena/1e3
 Vrange = np.arange(start=Vstart, stop=Vend, step=5e-4).T
 
@@ -79,7 +77,7 @@ bd = Bounds(lowerbd,upperbd)
 
 Z = minimize(lambda Z : cost(Z,X,Vrange,kappa,Vt), Z0, bounds = bd)
 Z = Z.x
-#%%
+#%% Plot the results
 
 Vmean = Z[-2]
 Vstep = Z[-1]
@@ -106,15 +104,37 @@ for i,x in enumerate(X):
 print("Vstep:", Vstep)
 print("Vmean:", Vmean)
 
-# plt.figure()
-# plt.plot(Vrange,b_alpha)
-# plt.plot(V,np.dot(A_alpha,Ib_alpha))
-# plt.plot(V,A_alpha,'black')
+#%% Now adjust each I_alpha and I_beta individually (try for m gating first)
 
-# plt.figure()
-# plt.plot(V,b_beta)
-# plt.plot(V,np.dot(A_beta,Ib_beta))
-# plt.plot(V,A_beta,'black')
+def lsqfit(x,Vrange,Vhalf,kappa,Vt):
+    A_alpha = np.zeros((np.size(Vrange),7))
+    A_beta = np.zeros((np.size(Vrange),7))
+    b_alpha = x.alpha(Vrange)
+    b_beta = x.beta(Vrange)
+    for i in range(7):
+        if isinstance(x,HHActivation):
+            A_alpha[:,i] = 1 / (1 + np.exp(1 * kappa * (Vhalf[i] - Vrange)  / Vt))
+            A_beta[:,i] = 1 / (1 + np.exp(-1 * kappa * (Vhalf[i] - Vrange)  / Vt))
+        else:
+            A_alpha[:,i] = 1 / (1 + np.exp(-1 * kappa * (Vhalf[i] - Vrange)  / Vt))
+            A_beta[:,i] = 1 / (1 + np.exp(1 * kappa * (Vhalf[i] - Vrange)  / Vt))
+    c_a = nnls(A_alpha,b_alpha)[0]
+    c_b = nnls(A_beta,b_beta)[0]
+
+    return c_a,c_b,A_alpha,A_beta
+
+for x in X:
+    c_a,c_b,A_alpha,A_beta = lsqfit(x,Vrange,Vhalf,kappa,Vt)
+
+    plt.figure()
+    plt.plot(Vrange,x.alpha(Vrange))
+    plt.plot(Vrange,np.dot(A_alpha,c_a))
+    # plt.plot(Vrange,A_alpha,'black')
+
+    plt.figure()
+    plt.plot(Vrange,x.beta(Vrange))
+    plt.plot(Vrange,np.dot(A_beta,c_b))
+    # plt.plot(Vrange,A_beta,'black')
 
 #%%
 
