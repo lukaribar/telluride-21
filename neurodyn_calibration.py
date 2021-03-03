@@ -77,11 +77,15 @@ bd = Bounds(lowerbd,upperbd)
 
 Z = minimize(lambda Z : cost(Z,X,Vrange,kappa,Vt), Z0, bounds = bd)
 Z = Z.x
-#%% Plot the nonlinear fitting results
 
 Vmean = Z[-2]
 Vstep = Z[-1]
 Vhalf = Vmean + np.arange(start=-3,stop=4,step=1)*Vstep
+
+print("Vstep:", Vstep)
+print("Vmean:", Vmean)
+
+#%% Plot the nonlinear fitting results
 
 for i,x in enumerate(X):
     c_a = Z[i*7:(i+1)*7]
@@ -93,16 +97,16 @@ for i,x in enumerate(X):
         alpha = I_rate(Vrange,c_a,-1,kappa,Vhalf)
         beta = I_rate(Vrange,c_b,1,kappa,Vhalf)
 
+    gatelabels = ['m','h','n']
     plt.figure()
-    plt.plot(Vrange,x.alpha(Vrange))
-    plt.plot(Vrange,alpha)
+    plt.plot(Vrange,x.alpha(Vrange),label='HH α_'+gatelabels[i])
+    plt.plot(Vrange,alpha,label='fit α_'+gatelabels[i])
+    plt.legend()
 
     plt.figure()
-    plt.plot(Vrange,x.beta(Vrange))
-    plt.plot(Vrange,beta)
-
-print("Vstep:", Vstep)
-print("Vmean:", Vmean)
+    plt.plot(Vrange,x.beta(Vrange),label='HH β_'+gatelabels[i])
+    plt.plot(Vrange,beta,label='fit β_'+gatelabels[i])
+    plt.legend()
 
 #%% Now adjust each I_alpha and I_beta individually (try for m gating first)
 
@@ -123,18 +127,34 @@ def lsqfit(x,Vrange,Vhalf,kappa,Vt):
 
     return c_a,c_b,A_alpha,A_beta
 
-for x in X:
+for i,x in enumerate(X):
+    # Fit and recover alpha and beta based on linear model
     c_a,c_b,A_alpha,A_beta = lsqfit(x,Vrange,Vhalf,kappa,Vt)
+    alpha = np.dot(A_alpha,c_a)
+    beta = np.dot(A_beta,c_b)
+    tau = 1/(alpha+beta)
+    inf = alpha/(alpha+beta)
+
+    gatelabels = ['m','h','n']
+    plt.figure()
+    plt.plot(Vrange,x.alpha(Vrange),label='HH α_'+gatelabels[i])
+    plt.plot(Vrange,alpha,label='fit α_'+gatelabels[i])
+    plt.legend()
 
     plt.figure()
-    plt.plot(Vrange,x.alpha(Vrange))
-    plt.plot(Vrange,np.dot(A_alpha,c_a))
-    # plt.plot(Vrange,A_alpha,'black')
+    plt.plot(Vrange,x.beta(Vrange),label='HH β_'+gatelabels[i])
+    plt.plot(Vrange,beta,label='fit β_'+gatelabels[i])
+    plt.legend()
 
     plt.figure()
-    plt.plot(Vrange,x.beta(Vrange))
-    plt.plot(Vrange,np.dot(A_beta,c_b))
-    # plt.plot(Vrange,A_beta,'black')
+    plt.plot(Vrange,x.tau(Vrange),label='HH τ_'+gatelabels[i])
+    plt.plot(Vrange,tau,label='fit τ_'+gatelabels[i])
+    plt.legend()
+
+    plt.figure()
+    plt.plot(Vrange,x.inf(Vrange),label='HH '+gatelabels[i]+'_∞')
+    plt.plot(Vrange,inf,label='fit '+gatelabels[i]+'_∞')
+    plt.legend()
 
 #%%
 
