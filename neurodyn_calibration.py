@@ -110,6 +110,8 @@ for i,x in enumerate(X):
 
 #%% Now adjust each I_alpha and I_beta individually (try for m gating first)
 
+# IMPORTANT: c_a and c_b returned by this function ignores the factor of 
+# 1000 due to HH's time units, which are in miliseconds
 def lsqfit(x,Vrange,Vhalf,kappa,Vt):
     A_alpha = np.zeros((np.size(Vrange),7))
     A_beta = np.zeros((np.size(Vrange),7))
