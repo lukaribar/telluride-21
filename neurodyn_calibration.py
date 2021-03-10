@@ -8,7 +8,8 @@ ND = NeuroDynModel()
 kappa,C,Vt,I_tau,I_ref,V_ref = ND.get_default_rate_pars()
 kappa = 0.7
 
-HH = HHModel(scl=2.2/1e3)
+scl = 2.2/1e3
+HH = HHModel(scl=scl)
 X = [HH.m,HH.h,HH.n]
 
 plots = False
@@ -162,7 +163,7 @@ for i,x in enumerate(X):
 
 #%%
 
-ND = NeuroDynModel(np.array([120,36,0.3])*1e-3, np.array([0.12,-0.012,0.0106])*2.2, Ib, Vmean+3.5*Vstep, Vmean-3.5*Vstep)
+ND = NeuroDynModel(np.array([120,36,0.3])*1e-3, np.array([120,-12,10.6])*scl, Ib, Vmean+3.5*Vstep, Vmean-3.5*Vstep)
 
 I0 = 80e-6 # scaling??
 Iapp = lambda t : I0
