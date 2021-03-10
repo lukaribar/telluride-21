@@ -5,18 +5,13 @@ import matplotlib.pyplot as plt
 from scipy.optimize import nnls, minimize, Bounds
 
 ND = NeuroDynModel()
-HH = HHModel()
 kappa,C,Vt,I_tau,I_ref,V_ref = ND.get_default_rate_pars()
-kappa = 1.7
+kappa = 0.7
+
+HH = HHModel(scl=2.2/1e3)
+X = [HH.m,HH.h,HH.n]
 
 #%% Finding optimal Vstep and Vmean and initial parameters for coefficients
-
-# Create gating variables to be fit
-# Notice multiplications/divisions by 1e3 to convert from mV to V
-m = HHActivation(25/1e3+V_ref, 0.1*1e3, 10/1e3, 0/1e3+V_ref, 4, 18/1e3)
-h = HHInactivation(0/1e3+V_ref, 0.07, 20/1e3, 30/1e3+V_ref, 1, 10/1e3)
-n = HHActivation(10/1e3+V_ref, 0.01*1e3, 10/1e3, 0/1e3+V_ref, 0.125, 80/1e3)
-X = [m,h,n]
 
 # Output of sum of sigmoids
 def I_rate(Vrange,c,sign,kappa,Vhalf):
@@ -108,7 +103,7 @@ for i,x in enumerate(X):
     plt.plot(Vrange,beta,label='fit β_'+gatelabels[i])
     plt.legend()
 
-#%% Now adjust each I_alpha and I_beta individually (try for m gating first)
+#%% Now adjust each I_alpha and I_beta individually
 
 # IMPORTANT: c_a and c_b returned by this function ignores the factor of 
 # 1000 due to HH's time units, which are in miliseconds
