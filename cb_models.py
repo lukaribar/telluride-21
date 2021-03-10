@@ -181,16 +181,38 @@ class HHInactivation(HHKinetics):
 #         i_out = self.g_max * (V - self.E_rev)
 #         for n in range(np.size(X))
 
-class NeuroDynModel:
+class NeuronalModel(ABC):
+    """
+    Abstract class for neuronal models.
+    """
+    @abstractmethod
+    def vfield(self, x, I):
+        pass
+
+    def simulate(self, trange, x0, Iapp, mode="continuous"):
+        # Note: Iapp should be a function of t, e.g., Iapp = lambda t : I0
+        if mode == "continuous":
+            def odesys(t, x):
+                return self.vfield(x, Iapp(t))
+            return solve_ivp(odesys, trange, x0)
+        else:
+            #... code forward-Euler integration
+            return
+
+class NeuroDynModel(NeuronalModel):
     """
     NeuroDyn model
     """
     
-    def __init__(self, dg=[400, 160, 12], dErev=[450, -250, -150], gates=[]):
+    def __init__(self, dg=[400, 160, 12], dErev=[450, -250, -150], gates=[], vHigh=0.426, vLow=-0.434):
         self.V_ref = 0              # Unit V , 1 volt
         self.I_tau = 33e-9          # Unit A
         self.I_voltage = 230e-9     # Unit A
         self.I_ref = 15e-9          # Unit A
+
+        # Relationship to V_ref it is not zero?
+        self.vHigh = self.V_ref + vHigh
+        self.vLow = self.V_ref + vLow
         
         # Membrane & gate capacitances
         self.C_m = 4e-12 # Unit F
@@ -252,13 +274,11 @@ class NeuroDynModel:
     def get_default_Vb(self):
          # Bias voltages for the 7-point spline regression
         Vb = np.zeros(7) # Define the 7 bias voltages
-        vHigh = self.V_ref + 0.426
-        vLow = self.V_ref - 0.434
-        I_factor = (vHigh - vLow) / 700e3
-        Vb[0] = vLow + (I_factor * 50e3)
+        I_factor = (self.vHigh - self.vLow) / 700e-3
+        Vb[0] = self.vLow + (I_factor * 50e-3)
         for i in range(1, 7):
-            Vb[i] = Vb[i-1] + (I_factor * 100e3)
-            
+            Vb[i] = Vb[i-1] + (I_factor * 100e-3)
+        
         return Vb
     
     def i_int(self,V, m, h, n):
@@ -280,16 +300,6 @@ class NeuroDynModel:
         dh = self.h.vfield(h,V)
         dn = self.n.vfield(n,V)
         return [dV, dm, dh, dn]
-    
-    def simulate(self, trange, x0, Iapp, mode="continuous"):
-        # Note: Iapp should be a function of t, e.g., Iapp = lambda t : I0
-        if mode == "continuous":
-            def odesys(t, x):
-                return self.vfield(x, Iapp(t))
-            return solve_ivp(odesys, trange, x0)
-        else:
-            #... code forward-Euler integration
-            return
 
     def perturb(self,sigma=0.15):
         
@@ -316,7 +326,7 @@ class NeuroDynModel:
         # Perturb voltage offsets?
         # Would add ~15mV sigma to each 'bias' voltage
 
-class HHModel:
+class HHModel(NeuronalModel):
     """
         Hodgkin-Huxley model 
     """
@@ -349,19 +359,21 @@ class HHModel:
 #            return self.gl*(V - self.El)
     
     # Default to nominal HH Nernst potentials and maximal conductances
-    def __init__(self, gna = 120, gk = 36, gl = 0.3, Ena = 120, Ek = -12, El = 10.6, gates=[]):
+    def __init__(self, gna = 120, gk = 36, gl = 0.3, Ena = 120, Ek = -12, El = 10.6, gates=[],scl=1):
         self.gna = gna
         self.gk = gk
         self.gl = gl
-        self.Ena = Ena
-        self.Ek = Ek
-        self.El = El        
+        self.Ena = Ena*scl
+        self.Ek = Ek*scl
+        self.El = El*scl
+        self.scl = scl
         if not gates:
             # Default to nominal HH kinetics
-            self.m = HHActivation(25, 0.1, 10, 0, 4, 18)
-            self.h = HHInactivation(0, 0.07, 20, 30, 1, 10)
-            self.n = HHActivation(10, 0.01, 10, 0, 0.125, 80)
+            self.m = HHActivation(25*scl, 0.1/scl, 10*scl, 0*scl, 4, 18*scl)
+            self.h = HHInactivation(0*scl, 0.07, 20*scl, 30*scl, 1, 10*scl)
+            self.n = HHActivation(10*scl, 0.01/scl, 10*scl, 0*scl, 0.125, 80*scl)
         else:
+            # We should perhaps scale the gates passed by the user as well
             self.m = gates[0]
             self.h = gates[1]
             self.n = gates[2]
@@ -380,7 +392,7 @@ class HHModel:
 
     def vfield(self, x, I):
         V, m, h, n = x
-        dV = -self.i_int(V, m, h, n) + I
+        dV = -self.i_int(V, m, h, n) + I*self.scl
         dm = self.m.vfield(m,V)
         dh = self.h.vfield(h,V)
         dn = self.n.vfield(n,V)
