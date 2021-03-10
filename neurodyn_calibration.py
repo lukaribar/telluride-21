@@ -130,8 +130,8 @@ Ib = []
 for i,x in enumerate(X):
     # Fit and recover alpha and beta based on linear model
     c_a,c_b,A_alpha,A_beta = lsqfit(x,Vrange,Vhalf,kappa,Vt)
-    i_a = c_a * C * Vt
-    i_b = c_b * C * Vt
+    i_a = c_a * C * Vt * 1000
+    i_b = c_b * C * Vt * 1000
     Ib.append([i_a, i_b])
     alpha = np.dot(A_alpha,c_a)
     beta = np.dot(A_beta,c_b)
@@ -162,9 +162,9 @@ for i,x in enumerate(X):
 
 #%%
 
-ND = NeuroDynModel(np.array([120,36,0.3])*4e-9, [120,-12,10.6], Ib*1000, Vmean+3.5*Vstep, Vmean-3.5*Vstep)
+ND = NeuroDynModel(np.array([120,36,0.3])*1e-3, np.array([0.12,-0.012,0.0106])*2.2, Ib, Vmean+3.5*Vstep, Vmean-3.5*Vstep)
 
-I0 = 0
+I0 = 80e-6 # scaling??
 Iapp = lambda t : I0
 def Ibump(t):
     if t < 0.004:
@@ -172,7 +172,7 @@ def Ibump(t):
     else:
         return I0 + 1e-3*t**2*np.exp(-(t-0.004)/1e-5)
 
-T = 0.02
+T = 0.2
 trange = (0, T)
 
 # Simulate different perturbed instances of the neuron
@@ -183,11 +183,11 @@ plt.xlabel('t')
 plt.ylabel('V')
 plt.title('NeuroDyn simulation')
 
-fig2, ([ax1, ax2], [ax3, ax4], [ax5, ax6]) = plt.subplots(3,2)
-fig2.suptitle('Gating variables')
+#fig2, ([ax1, ax2], [ax3, ax4], [ax5, ax6]) = plt.subplots(3,2)
+#fig2.suptitle('Gating variables')
 
-fig3, ([ax7, ax8]) = plt.subplots(2)
-fig3.suptitle('IV curves')
+#fig3, ([ax7, ax8]) = plt.subplots(2)
+#fig3.suptitle('IV curves')
 
 V1 = np.arange(-1,1,0.01)
 V2 = np.arange(-0.25,0.25,0.01)
