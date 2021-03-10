@@ -11,6 +11,8 @@ kappa = 0.7
 HH = HHModel(scl=2.2/1e3)
 X = [HH.m,HH.h,HH.n]
 
+plots = False
+
 #%% Finding optimal Vstep and Vmean and initial parameters for coefficients
 
 # Output of sum of sigmoids
@@ -80,28 +82,28 @@ Vhalf = Vmean + np.arange(start=-3,stop=4,step=1)*Vstep
 print("Vstep:", Vstep)
 print("Vmean:", Vmean)
 
-#%% Plot the nonlinear fitting results
-
-for i,x in enumerate(X):
-    c_a = Z[i*7:(i+1)*7]
-    c_b = Z[len(X)*7+i*7:len(X)*7+(i+1)*7]
-    if isinstance(x,HHActivation):
-        alpha = I_rate(Vrange,c_a,1,kappa,Vhalf)
-        beta = I_rate(Vrange,c_b,-1,kappa,Vhalf)
-    else:
-        alpha = I_rate(Vrange,c_a,-1,kappa,Vhalf)
-        beta = I_rate(Vrange,c_b,1,kappa,Vhalf)
-
-    gatelabels = ['m','h','n']
-    plt.figure()
-    plt.plot(Vrange,x.alpha(Vrange),label='HH α_'+gatelabels[i])
-    plt.plot(Vrange,alpha,label='fit α_'+gatelabels[i])
-    plt.legend()
-
-    plt.figure()
-    plt.plot(Vrange,x.beta(Vrange),label='HH β_'+gatelabels[i])
-    plt.plot(Vrange,beta,label='fit β_'+gatelabels[i])
-    plt.legend()
+#Plot the nonlinear fitting results
+if (plots):
+    for i,x in enumerate(X):
+        c_a = Z[i*7:(i+1)*7]
+        c_b = Z[len(X)*7+i*7:len(X)*7+(i+1)*7]
+        if isinstance(x,HHActivation):
+            alpha = I_rate(Vrange,c_a,1,kappa,Vhalf)
+            beta = I_rate(Vrange,c_b,-1,kappa,Vhalf)
+        else:
+            alpha = I_rate(Vrange,c_a,-1,kappa,Vhalf)
+            beta = I_rate(Vrange,c_b,1,kappa,Vhalf)
+    
+        gatelabels = ['m','h','n']
+        plt.figure()
+        plt.plot(Vrange,x.alpha(Vrange),label='HH α_'+gatelabels[i])
+        plt.plot(Vrange,alpha,label='fit α_'+gatelabels[i])
+        plt.legend()
+    
+        plt.figure()
+        plt.plot(Vrange,x.beta(Vrange),label='HH β_'+gatelabels[i])
+        plt.plot(Vrange,beta,label='fit β_'+gatelabels[i])
+        plt.legend()
 
 #%% Now adjust each I_alpha and I_beta individually
 
@@ -124,38 +126,43 @@ def lsqfit(x,Vrange,Vhalf,kappa,Vt):
 
     return c_a,c_b,A_alpha,A_beta
 
+Ib = []
 for i,x in enumerate(X):
     # Fit and recover alpha and beta based on linear model
     c_a,c_b,A_alpha,A_beta = lsqfit(x,Vrange,Vhalf,kappa,Vt)
+    i_a = c_a * C * Vt
+    i_b = c_b * C * Vt
+    Ib.append([i_a, i_b])
     alpha = np.dot(A_alpha,c_a)
     beta = np.dot(A_beta,c_b)
     tau = 1/(alpha+beta)
     inf = alpha/(alpha+beta)
-
-    gatelabels = ['m','h','n']
-    plt.figure()
-    plt.plot(Vrange,x.alpha(Vrange),label='HH α_'+gatelabels[i])
-    plt.plot(Vrange,alpha,label='fit α_'+gatelabels[i])
-    plt.legend()
-
-    plt.figure()
-    plt.plot(Vrange,x.beta(Vrange),label='HH β_'+gatelabels[i])
-    plt.plot(Vrange,beta,label='fit β_'+gatelabels[i])
-    plt.legend()
-
-    plt.figure()
-    plt.plot(Vrange,x.tau(Vrange),label='HH τ_'+gatelabels[i])
-    plt.plot(Vrange,tau,label='fit τ_'+gatelabels[i])
-    plt.legend()
-
-    plt.figure()
-    plt.plot(Vrange,x.inf(Vrange),label='HH '+gatelabels[i]+'_∞')
-    plt.plot(Vrange,inf,label='fit '+gatelabels[i]+'_∞')
-    plt.legend()
+    
+    if (plots):
+        gatelabels = ['m','h','n']
+        plt.figure()
+        plt.plot(Vrange,x.alpha(Vrange),label='HH α_'+gatelabels[i])
+        plt.plot(Vrange,alpha,label='fit α_'+gatelabels[i])
+        plt.legend()
+    
+        plt.figure()
+        plt.plot(Vrange,x.beta(Vrange),label='HH β_'+gatelabels[i])
+        plt.plot(Vrange,beta,label='fit β_'+gatelabels[i])
+        plt.legend()
+    
+        plt.figure()
+        plt.plot(Vrange,x.tau(Vrange),label='HH τ_'+gatelabels[i])
+        plt.plot(Vrange,tau,label='fit τ_'+gatelabels[i])
+        plt.legend()
+    
+        plt.figure()
+        plt.plot(Vrange,x.inf(Vrange),label='HH '+gatelabels[i]+'_∞')
+        plt.plot(Vrange,inf,label='fit '+gatelabels[i]+'_∞')
+        plt.legend()
 
 #%%
 
-ND = NeuroDynModel()
+ND = NeuroDynModel(np.array([120,36,0.3])*4e-9, [120,-12,10.6], Ib*1000, Vmean+3.5*Vstep, Vmean-3.5*Vstep)
 
 I0 = 0
 Iapp = lambda t : I0
@@ -186,37 +193,37 @@ V1 = np.arange(-1,1,0.01)
 V2 = np.arange(-0.25,0.25,0.01)
 
 for i in range(1):
-    sol = ND.simulate(trange,[-0.175,0,0,0],Iapp)
+    sol = ND.simulate(trange,[0,0,0,0],Iapp)
     
     # Time plot
     plt.figure(1)
     plt.plot(sol.t, sol.y[0])
-    
-    # Gating variable steady-state functoins
-    ax1.plot(V1, ND.m.inf(V1))
-    ax1.set_title(r'$m_{\infty}(V)$')
-    ax2.plot(V1, ND.m.tau(V1))
-    ax2.set_title(r'$\tau_{m}(V)$')
-    ax3.plot(V1, ND.h.inf(V1))
-    ax3.set_title(r'$h_{\infty}(V)$')
-    ax4.plot(V1, ND.h.tau(V1))
-    ax4.set_title(r'$\tau_{h}(V)$')
-    ax5.plot(V1, ND.n.inf(V1))
-    ax5.set_title(r'$n_{\infty}(V)$')
-    ax5.set_xlabel('V')
-    ax6.plot(V1, ND.n.tau(V1))
-    ax6.set_title(r'$\tau_{n}(V)$')
-    ax6.set_xlabel('V')
-    
-    # IV curves
-    Ifast = ND.iL_ss(V2) + ND.iNa_ss(V2)
-    Islow = Ifast + ND.iK_ss(V2)
-    ax7.plot(V2, Ifast)
-    ax7.set_title(r'$I_{fast}$')
-    ax8.plot(V2, Islow)
-    ax8.set_title(r'$I_{slow}$')
-    ax8.set_xlabel('V')
-    
-    ND.perturb()
+#    
+#    # Gating variable steady-state functoins
+#    ax1.plot(V1, ND.m.inf(V1))
+#    ax1.set_title(r'$m_{\infty}(V)$')
+#    ax2.plot(V1, ND.m.tau(V1))
+#    ax2.set_title(r'$\tau_{m}(V)$')
+#    ax3.plot(V1, ND.h.inf(V1))
+#    ax3.set_title(r'$h_{\infty}(V)$')
+#    ax4.plot(V1, ND.h.tau(V1))
+#    ax4.set_title(r'$\tau_{h}(V)$')
+#    ax5.plot(V1, ND.n.inf(V1))
+#    ax5.set_title(r'$n_{\infty}(V)$')
+#    ax5.set_xlabel('V')
+#    ax6.plot(V1, ND.n.tau(V1))
+#    ax6.set_title(r'$\tau_{n}(V)$')
+#    ax6.set_xlabel('V')
+#    
+#    # IV curves
+#    Ifast = ND.iL_ss(V2) + ND.iNa_ss(V2)
+#    Islow = Ifast + ND.iK_ss(V2)
+#    ax7.plot(V2, Ifast)
+#    ax7.set_title(r'$I_{fast}$')
+#    ax8.plot(V2, Islow)
+#    ax8.set_title(r'$I_{slow}$')
+#    ax8.set_xlabel('V')
+#    
+#    ND.perturb()
 
 plt.show()

@@ -35,19 +35,19 @@ class NeuroDynRate:
     """
     NeuroDyn-type alpha or beta functions (kinetic rates)
     """
-    def __init__(self,dIb,kappa,Vt,Vb,I_tau,sign):
-        self.dIb = dIb
+    def __init__(self,Ib,kappa,Vt,Vb,sign):
+        #self.dIb = dIb
+        self.Ib = Ib
         self.kappa = kappa  #global?
         self.Vt = Vt  #global?
         self.Vb = Vb  #global?
-        self.I_tau = np.array([I_tau]*7)
         self.sign = sign
 
     def I_rate(self,V):
         I=0
-        Ib = self.dIb*self.I_tau/1024
-        for i in range(np.size(Ib)):
-            I += Ib[i] / (1 + np.exp(self.sign * self.kappa * (self.Vb[i] - V)  / self.Vt))
+        #Ib = self.dIb*self.I_tau/1024
+        for i in range(np.size(self.Ib)):
+            I += self.Ib[i] / (1 + np.exp(self.sign * self.kappa * (self.Vb[i] - V)  / self.Vt))
         return I     
 
 class NeuroDynActivation(HHKinetics):
@@ -60,18 +60,17 @@ class NeuroDynActivation(HHKinetics):
     """
     def __init__(self,*args):
         if isinstance(args[0],HHKinetics):
-            x,kappa,C,Vt,Vb,I_tau = args
-            dIb_alpha,dIb_beta = self.fit(x,kappa,C,Vt,Vb,I_tau)
+            x,kappa,C,Vt,Vb = args
+            Ib_alpha,Ib_beta = self.fit(x,kappa,C,Vt,Vb)
         else:
-            dIb,kappa,C,Vt,Vb,I_tau = args
-            dIb_alpha = dIb[0]
-            dIb_beta = dIb[1]
+            Ib,kappa,C,Vt,Vb  = args
+            Ib_alpha = Ib[0]
+            Ib_beta = Ib[1]
         
         self.C = C
         self.Vt = Vt    
-        self.I_tau = I_tau
-        self.alpharate = NeuroDynRate(dIb_alpha,kappa,Vt,Vb,I_tau,1)
-        self.betarate = NeuroDynRate(dIb_beta,kappa,Vt,Vb,I_tau,-1) 
+        self.alpharate = NeuroDynRate(Ib_alpha,kappa,Vt,Vb,1)
+        self.betarate = NeuroDynRate(Ib_beta,kappa,Vt,Vb,-1) 
     
     def alpha(self,V):
         return self.alpharate.I_rate(V) / (self.C * self.Vt)
@@ -79,7 +78,7 @@ class NeuroDynActivation(HHKinetics):
     def beta(self,V):
         return self.betarate.I_rate(V) / (self.C * self.Vt)
 
-    def fit(self,x,kappa,C,Vt,Vb,I_tau):
+    def fit(self,x,kappa,C,Vt,Vb):
         V = np.arange(start=-0.015, stop=0.15, step=5e-4).T
         A_alpha = np.zeros((np.size(V),7))
         A_beta = np.zeros((np.size(V),7))
@@ -98,11 +97,11 @@ class NeuroDynInactivation(HHKinetics):
     """
     NeuroDyn-type activation gating variable kinetics.
     """
-    def __init__(self,dIb,kappa,C,Vt,Vb,I_tau):
+    def __init__(self,dIb,kappa,C,Vt,Vb):
         self.C = C
         self.Vt = Vt
-        self.alpharate = NeuroDynRate(dIb[0],kappa,Vt,Vb,I_tau,-1) 
-        self.betarate = NeuroDynRate(dIb[1],kappa,Vt,Vb,I_tau,1) 
+        self.alpharate = NeuroDynRate(dIb[0],kappa,Vt,Vb,-1) 
+        self.betarate = NeuroDynRate(dIb[1],kappa,Vt,Vb,1) 
     
     def alpha(self,V):
         return self.alpharate.I_rate(V) / (self.C * self.Vt)
@@ -204,7 +203,7 @@ class NeuroDynModel(NeuronalModel):
     NeuroDyn model
     """
     
-    def __init__(self, dg=[400, 160, 12], dErev=[450, -250, -150], gates=[], vHigh=0.426, vLow=-0.434):
+    def __init__(self, dg=[400, 160, 12], dErev=[450, -250, -150], Ib=[], vHigh=0.426, vLow=-0.434):
         self.V_ref = 0              # Unit V , 1 volt
         self.I_tau = 33e-9          # Unit A
         self.I_voltage = 230e-9     # Unit A
@@ -228,40 +227,50 @@ class NeuroDynModel(NeuronalModel):
         self.dErev = dErev
                 
         # Convert digital to physical
-        self.gna = self.convert_conductance(dg[0])
-        self.gk = self.convert_conductance(dg[1])
-        self.gl = self.convert_conductance(dg[2])
-        self.Ena = self.convert_potential(dErev[0])
-        self.Ek = self.convert_potential(dErev[1])
-        self.El = self.convert_potential(dErev[2])
+        self.gna = dg[0]
+        self.gk = dg[1]
+        self.gl = dg[2]
+        self.Ena = dErev[0]
+        self.Ek = dErev[1]
+        self.El = dErev[2]
+        
+        #self.gna = self.convert_conductance(dg[0])
+        #self.gk = self.convert_conductance(dg[1])
+        #self.gl = self.convert_conductance(dg[2])
+        #self.Ena = self.convert_potential(dErev[0])
+        #self.Ek = self.convert_potential(dErev[1])
+        #self.El = self.convert_potential(dErev[2])
         
         # Gating variable coefficients
         self.p = 3
         self.q = 1
         self.r = 4
         
-        if not gates:
+        Vb = self.get_default_Vb()
+        if (Ib == []):
             # Default to nominal NeuroDyn activation parameters
-            Vb = self.get_default_Vb()
-            dIb_m = [[0, 0, 120, 400, 800, 1023, 1023],
-                     [1023, 1023, 1023, 1023, 0, 0, 0]]
-            dIb_h = [[237, 5, 7, 6, 0, 0, 0],
-                    [0, 0, 0, 0, 41, 25, 8]]
-            dIb_n = [[0, 0, 0, 0, 80, 40, 250],
-                    [4, 0, 0, 10, 0, 0, 4]]
-            self.m = NeuroDynActivation(dIb_m,self.kappa,self.C_gate,self.Vt,Vb,self.I_tau)
-            self.h = NeuroDynInactivation(dIb_h,self.kappa,self.C_gate,self.Vt,Vb,self.I_tau)
-            self.n = NeuroDynActivation(dIb_n,self.kappa,self.C_gate,self.Vt,Vb,self.I_tau)
+            dIb_m = np.array([[0, 0, 120, 400, 800, 1023, 1023],
+                     [1023, 1023, 1023, 1023, 0, 0, 0]])
+            dIb_h = np.array([[237, 5, 7, 6, 0, 0, 0],
+                    [0, 0, 0, 0, 41, 25, 8]])
+            dIb_n = np.array([[0, 0, 0, 0, 80, 40, 250],
+                    [4, 0, 0, 10, 0, 0, 4]])
+            Ib_m = dIb_m * self.I_tau / 1024
+            Ib_h = dIb_h * self.I_tau / 1024
+            Ib_n = dIb_n * self.I_tau / 1024
         else:
-            self.m = gates[0]
-            self.h = gates[1]
-            self.n = gates[2]
+            Ib_m = Ib[0]
+            Ib_h = Ib[1]
+            Ib_n = Ib[2]
+            
+        self.m = NeuroDynActivation(Ib_m,self.kappa,self.C_gate,self.Vt,Vb)
+        self.h = NeuroDynInactivation(Ib_h,self.kappa,self.C_gate,self.Vt,Vb)
+        self.n = NeuroDynActivation(Ib_n,self.kappa,self.C_gate,self.Vt,Vb)
             
     def convert_conductance(self, dg):
         # Factor for converting digital to physical g
         g_factor = (self.kappa / self.Vt) * (self.I_tau / 1024)
         return dg * g_factor
-        
         
     def convert_potential(self, dErev):
         # Factor for converting digital to physical Erev
