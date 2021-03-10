@@ -2,50 +2,161 @@
 from cb_models import *
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.optimize import nnls
-
-# Fitting the HH activation functions
-# This should eventually become part of the initialization of 
-# Neurodyn activation / inactivation kinetics.
+from scipy.optimize import nnls, minimize, Bounds
 
 ND = NeuroDynModel()
 HH = HHModel()
 kappa,C,Vt,I_tau,I_ref,V_ref = ND.get_default_rate_pars()
+kappa = 1.7
 
+#%% Finding optimal Vstep and Vmean and initial parameters for coefficients
+
+# Create gating variables to be fit
 # Notice multiplications/divisions by 1e3 to convert from mV to V
-m = HHActivation(25/1e3+V_ref, 0.1*1e3, 10/1e3, 0+V_ref, 4, 18/1e3)
+m = HHActivation(25/1e3+V_ref, 0.1*1e3, 10/1e3, 0/1e3+V_ref, 4, 18/1e3)
+h = HHInactivation(0/1e3+V_ref, 0.07, 20/1e3, 30/1e3+V_ref, 1, 10/1e3)
+n = HHActivation(10/1e3+V_ref, 0.01*1e3, 10/1e3, 0/1e3+V_ref, 0.125, 80/1e3)
+X = [m,h,n]
 
-# Maybe we could automatize this by adding vHigh and vLow
-# (or their average) as a free parameter to be optimized for. 
-Vb = np.zeros(7)
-vHigh = V_ref  + HH.Ena/1e3  + 0.1
-vLow = V_ref   + HH.Ek/1e3   - 0.1 
-I_factor = (vHigh - vLow) / 700e3
-Vb[0] = vLow + (I_factor * 50e3)
-for i in range(1, 7):
-    Vb[i] = Vb[i-1] + (I_factor * 100e3)
+# Output of sum of sigmoids
+def I_rate(Vrange,c,sign,kappa,Vhalf):
+    I=0
+    for i in range(len(Vhalf)):
+        I += c[i] / (1 + np.exp(sign * kappa * (Vhalf[i] - Vrange)  / Vt))
+    return I
 
-V = np.arange(start=V_ref+HH.Ek/1e3, stop=V_ref+HH.Ena/1e3, step=5e-4).T
+# Cost function
+def cost(Z,X,Vrange,kappa,Vt):
+    """
+    inputs:
+        C_a is list of vector of coefficients to fit alpha functions
+        C_b is list of vector of coefficients to fit beta functions
+        ...
+        X is a list of HHKinetics objects to fit
+        Vrange is a vector with voltage values used for fitting
+    output:
+        value of the cost
+    """
+    Vmean = Z[-2]
+    Vstep = Z[-1]
+    Vhalf = Vmean + np.arange(start=-3,stop=4,step=1)*Vstep
 
-A_alpha = np.zeros((np.size(V),7))
-A_beta = np.zeros((np.size(V),7))
-b_alpha = m.alpha(V) / np.amax(m.alpha(V)) 
-b_beta = m.beta(V) / np.amax(m.beta(V))
-for i in range(7):
-    A_alpha[:,i] = 1 / (1 + np.exp(1 * kappa * (Vb[i] - V)  / Vt))
-    A_beta[:,i] = 1 / (1 + np.exp(-1 * kappa * (Vb[i] - V)  / Vt))
-Ib_alpha = nnls(A_alpha,b_alpha)[0]
-Ib_beta = nnls(A_beta,b_beta)[0]
+    out = 0
+    for i, x in enumerate(X):
+        c_a = Z[i*7:(i+1)*7]
+        c_b = Z[len(X)*7+i*7:len(X)*7+(i+1)*7]
+        norm_a = max(x.alpha(Vrange))
+        norm_b = max(x.beta(Vrange))        
+        if isinstance(x,HHActivation):    
+            out += sum(((x.alpha(Vrange) - I_rate(Vrange,c_a,1,kappa,Vhalf))/norm_a)**2) 
+            out += sum(((x.beta(Vrange) - I_rate(Vrange,c_b,-1,kappa,Vhalf))/norm_b)**2) 
+        else:
+            out += sum(((x.alpha(Vrange) - I_rate(Vrange,c_a,-1,kappa,Vhalf))/norm_a)**2) 
+            out += sum(((x.beta(Vrange) - I_rate(Vrange,c_b,1,kappa,Vhalf))/norm_b)**2)  
 
-plt.figure()
-plt.plot(V,b_alpha)
-plt.plot(V,np.dot(A_alpha,Ib_alpha))
-plt.plot(V,A_alpha,'black')
+    return out  
 
-plt.figure()
-plt.plot(V,b_beta)
-plt.plot(V,np.dot(A_beta,Ib_beta))
-plt.plot(V,A_beta,'black')
+# Range to do the fit
+Vstart = V_ref+HH.Ek/1e3
+Vend   = 0.08   # V_ref+HH.Ena/1e3
+Vrange = np.arange(start=Vstart, stop=Vend, step=5e-4).T
+
+# Initial parameter values
+C_a = np.array([])
+C_b = np.array([])
+for i, x in enumerate(X):
+    C_a = np.append(C_a,max(x.alpha(Vrange))*np.ones(7)/7)
+    C_b = np.append(C_b,max(x.beta(Vrange))*np.ones(7)/7)
+Vmean = V_ref   #(V_ref+HH.Ek/1e3 + V_ref+HH.Ena/1e3)/2
+Vstep = (V_ref+HH.Ena/1e3 - V_ref+HH.Ek/1e3)/100
+Z0 = np.concatenate([C_a,C_b,np.array([Vmean,Vstep])])
+
+lowerbd = np.append(np.zeros(14*len(X)),np.array([-np.inf,-np.inf]))
+upperbd = np.append(np.ones(14*len(X))*np.inf,np.array([np.inf,np.inf]))
+bd = Bounds(lowerbd,upperbd)
+
+Z = minimize(lambda Z : cost(Z,X,Vrange,kappa,Vt), Z0, bounds = bd)
+Z = Z.x
+
+Vmean = Z[-2]
+Vstep = Z[-1]
+Vhalf = Vmean + np.arange(start=-3,stop=4,step=1)*Vstep
+
+print("Vstep:", Vstep)
+print("Vmean:", Vmean)
+
+#%% Plot the nonlinear fitting results
+
+for i,x in enumerate(X):
+    c_a = Z[i*7:(i+1)*7]
+    c_b = Z[len(X)*7+i*7:len(X)*7+(i+1)*7]
+    if isinstance(x,HHActivation):
+        alpha = I_rate(Vrange,c_a,1,kappa,Vhalf)
+        beta = I_rate(Vrange,c_b,-1,kappa,Vhalf)
+    else:
+        alpha = I_rate(Vrange,c_a,-1,kappa,Vhalf)
+        beta = I_rate(Vrange,c_b,1,kappa,Vhalf)
+
+    gatelabels = ['m','h','n']
+    plt.figure()
+    plt.plot(Vrange,x.alpha(Vrange),label='HH α_'+gatelabels[i])
+    plt.plot(Vrange,alpha,label='fit α_'+gatelabels[i])
+    plt.legend()
+
+    plt.figure()
+    plt.plot(Vrange,x.beta(Vrange),label='HH β_'+gatelabels[i])
+    plt.plot(Vrange,beta,label='fit β_'+gatelabels[i])
+    plt.legend()
+
+#%% Now adjust each I_alpha and I_beta individually (try for m gating first)
+
+# IMPORTANT: c_a and c_b returned by this function ignores the factor of 
+# 1000 due to HH's time units, which are in miliseconds
+def lsqfit(x,Vrange,Vhalf,kappa,Vt):
+    A_alpha = np.zeros((np.size(Vrange),7))
+    A_beta = np.zeros((np.size(Vrange),7))
+    b_alpha = x.alpha(Vrange)
+    b_beta = x.beta(Vrange)
+    for i in range(7):
+        if isinstance(x,HHActivation):
+            A_alpha[:,i] = 1 / (1 + np.exp(1 * kappa * (Vhalf[i] - Vrange)  / Vt))
+            A_beta[:,i] = 1 / (1 + np.exp(-1 * kappa * (Vhalf[i] - Vrange)  / Vt))
+        else:
+            A_alpha[:,i] = 1 / (1 + np.exp(-1 * kappa * (Vhalf[i] - Vrange)  / Vt))
+            A_beta[:,i] = 1 / (1 + np.exp(1 * kappa * (Vhalf[i] - Vrange)  / Vt))
+    c_a = nnls(A_alpha,b_alpha)[0]
+    c_b = nnls(A_beta,b_beta)[0]
+
+    return c_a,c_b,A_alpha,A_beta
+
+for i,x in enumerate(X):
+    # Fit and recover alpha and beta based on linear model
+    c_a,c_b,A_alpha,A_beta = lsqfit(x,Vrange,Vhalf,kappa,Vt)
+    alpha = np.dot(A_alpha,c_a)
+    beta = np.dot(A_beta,c_b)
+    tau = 1/(alpha+beta)
+    inf = alpha/(alpha+beta)
+
+    gatelabels = ['m','h','n']
+    plt.figure()
+    plt.plot(Vrange,x.alpha(Vrange),label='HH α_'+gatelabels[i])
+    plt.plot(Vrange,alpha,label='fit α_'+gatelabels[i])
+    plt.legend()
+
+    plt.figure()
+    plt.plot(Vrange,x.beta(Vrange),label='HH β_'+gatelabels[i])
+    plt.plot(Vrange,beta,label='fit β_'+gatelabels[i])
+    plt.legend()
+
+    plt.figure()
+    plt.plot(Vrange,x.tau(Vrange),label='HH τ_'+gatelabels[i])
+    plt.plot(Vrange,tau,label='fit τ_'+gatelabels[i])
+    plt.legend()
+
+    plt.figure()
+    plt.plot(Vrange,x.inf(Vrange),label='HH '+gatelabels[i]+'_∞')
+    plt.plot(Vrange,inf,label='fit '+gatelabels[i]+'_∞')
+    plt.legend()
 
 #%%
 
