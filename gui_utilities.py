@@ -29,8 +29,8 @@ class GUI:
         # Parameters for plots
         self.V_min = -20
         self.V_max = 120
-        self.i_min = -1
-        self.i_max = 10
+        self.i_min = self.i0 - 1
+        self.i_max = self.i0 + 10
         self.t_max = 200
         self.t = np.arange(0, self.t_max, 0.1)
         
@@ -72,6 +72,10 @@ class GUI:
         self.s9 = self.add_slider("$g_{l}$", [0.1, 0.15, 0.3, 0.03], 0, 2,
                                   self.system.gl, self.update_gl)
         
+        # Add slider for Ibase
+        self.s10 = self.add_slider("$I_{app}$", [0.1, 0.05, 0.3, 0.03], -10,10,
+                                  self.i0, self.update_i0)
+        
         # Add run button
         self.b = self.add_button("Run", [0.8, 0.02, 0.1, 0.03], self.run)
     
@@ -107,7 +111,13 @@ class GUI:
         for alpha in self.alpha_list:
             I_out += alpha.out(t)
         return I_out
-
+    
+    def update_i0(self, val):
+        self.i0 = val
+        self.i_min = self.i0 - 1
+        self.i_max = self.i0 + 10
+        self.update_input()
+    
     def update_gna(self, val):
         self.system.gna = val
         
@@ -139,7 +149,8 @@ class GUI:
 
     def run(self, event):
         trange = (0, self.t_max)
-        x0 = [0, 0, 0, 0]
+        x0 = [0, self.system.m.inf(0), self.system.h.inf(0),
+              self.system.n.inf(0)]
         sol = self.system.simulate(trange, x0, self.i_app)
         
         self.ax_out.cla()
@@ -147,4 +158,8 @@ class GUI:
         self.ax_out.set_ylim((self.V_min, self.V_max))
         self.ax_out.set_ylabel('V')
         self.ax_out.plot(sol.t, sol.y[0])
+        
+    def perturb(self, event):
+        # Perturb the model
+        pass
         
