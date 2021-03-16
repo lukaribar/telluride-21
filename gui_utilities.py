@@ -16,9 +16,9 @@ class GUI:
         
         # Initial parameters
         self.i0 = 0
-        self.t_start_list = [10, 45, 80]
+        self.t_start_list = [50, 100, 150]
         self.tau_list = [1, 1, 1]
-        self.mag_list = [1, 2, 3]
+        self.mag_list = [2, 4, 6]
         self.alpha_list = []
         
         # Define inputs
@@ -31,7 +31,7 @@ class GUI:
         self.V_max = 120
         self.i_min = -1
         self.i_max = 10
-        self.t_max = 100
+        self.t_max = 200
         self.t = np.arange(0, self.t_max, 0.1)
         
         # Create empty plot
@@ -41,31 +41,40 @@ class GUI:
         # Add voltage plot
         self.ax_out = self.fig.add_subplot(2, 1, 1)
         self.ax_out.set_position([0.1, 0.75, 0.8, 0.2])
-        self.ax_out.set_xlim((0, self.t_max))
-        self.ax_out.set_ylim((self.V_min, self.V_max))
-        self.ax_out.set_ylabel('V')
+        self.run(0)
         
         # Add Iapp plot
         self.ax_in = self.fig.add_subplot(2, 1, 2)
-        self.ax_in.set_position([0.1, 0.45, 0.8, 0.2])
+        self.ax_in.set_position([0.1, 0.55, 0.8, 0.1])
         self.update_input()
         
         # Add sliders for magnitudes
-        self.s1 = self.add_slider("Input 1", [0.1, 0.3, 0.3, 0.03], 0, 5,
+        self.s1 = self.add_slider("Input 1", [0.1, 0.45, 0.3, 0.03], 0, 10,
                                   self.mag_list[0], self.alpha_list[0].set_mag)
-        self.s2 = self.add_slider("Input 2", [0.1, 0.25, 0.3, 0.03], 0, 5,
+        self.s2 = self.add_slider("Input 2", [0.1, 0.4, 0.3, 0.03], 0, 10,
                                   self.mag_list[1], self.alpha_list[1].set_mag)
-        self.s3 = self.add_slider("Input 3", [0.1, 0.2, 0.3, 0.03], 0, 5,
+        self.s3 = self.add_slider("Input 3", [0.1, 0.35, 0.3, 0.03], 0, 10,
                                   self.mag_list[2], self.alpha_list[2].set_mag)
         
         # Add sliders for taus
-        self.s4 = self.add_slider("", [0.6, 0.3, 0.3, 0.03], 0.1, 5,
+        self.s4 = self.add_slider("", [0.6, 0.45, 0.3, 0.03], 0.1, 5,
                                   self.tau_list[0], self.alpha_list[0].set_tau)
-        self.s5 = self.add_slider("", [0.6, 0.25, 0.3, 0.03], 0.1, 5,
+        self.s5 = self.add_slider("", [0.6, 0.4, 0.3, 0.03], 0.1, 5,
                                   self.tau_list[1], self.alpha_list[1].set_tau)
-        self.s6 = self.add_slider("", [0.6, 0.2, 0.3, 0.03], 0.1, 5,
+        self.s6 = self.add_slider("", [0.6, 0.35, 0.3, 0.03], 0.1, 5,
                                   self.tau_list[2], self.alpha_list[2].set_tau)
         
+        # Add sliders for maximal conductances
+        self.s7 = self.add_slider("$g_{Na}$", [0.1, 0.25, 0.3, 0.03], 0, 200,
+                                  self.system.gna, self.update_gna)
+        self.s8 = self.add_slider("$g_{K}$", [0.1, 0.2, 0.3, 0.03], 0, 100,
+                                  self.system.gk, self.update_gk)
+        self.s9 = self.add_slider("$g_{l}$", [0.1, 0.15, 0.3, 0.03], 0, 2,
+                                  self.system.gl, self.update_gl)
+        
+        # Add run button
+        self.b = self.add_button("Run", [0.8, 0.02, 0.1, 0.03], self.run)
+    
     class Alpha:
         def __init__(self, t_start, tau, mag):
             self.t_start = t_start
@@ -98,7 +107,16 @@ class GUI:
         for alpha in self.alpha_list:
             I_out += alpha.out(t)
         return I_out
-            
+
+    def update_gna(self, val):
+        self.system.gna = val
+        
+    def update_gk(self, val):
+        self.system.gk = val
+        
+    def update_gl(self, val):
+        self.system.gl = val
+        
     def update_val(self, val, update_method):
         update_method(val)
         self.update_input()
@@ -119,4 +137,14 @@ class GUI:
     def add_label(self, x, y, text):
         plt.figtext(x, y, text, horizontalalignment = 'center')
 
-    
+    def run(self, event):
+        trange = (0, self.t_max)
+        x0 = [0, 0, 0, 0]
+        sol = self.system.simulate(trange, x0, self.i_app)
+        
+        self.ax_out.cla()
+        self.ax_out.set_xlim((0, self.t_max))
+        self.ax_out.set_ylim((self.V_min, self.V_max))
+        self.ax_out.set_ylabel('V')
+        self.ax_out.plot(sol.t, sol.y[0])
+        
