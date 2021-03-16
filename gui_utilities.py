@@ -104,7 +104,7 @@ class GUI:
         self.ax_in.set_ylim((self.i_min, self.i_max))
         self.ax_in.set_xlabel('Time')
         self.ax_in.set_ylabel('Iapp')
-        self.ax_in.plot(self.t, I)
+        self.ax_in.plot(self.t, I, 'C3')
     
     def i_app(self, t):
         I_out = self.i0
