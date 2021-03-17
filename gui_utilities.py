@@ -17,8 +17,8 @@ class GUI:
         # Initial parameters
         self.i0 = 0
         self.t_start_list = [50, 100, 150]
-        self.tau_list = [1, 1, 1]
-        self.mag_list = [2, 4, 6]
+        self.tau_list = [1, 1, 10]
+        self.mag_list = [2, 4, 10]
         self.alpha_list = []
         
         # Define inputs
@@ -29,7 +29,7 @@ class GUI:
         # Parameters for plots
         self.V_min = -20
         self.V_max = 120
-        self.i_min = -5
+        self.i_min = -15
         self.i_max = 20
         self.t_max = 200
         self.t = np.arange(0, self.t_max, 0.1)
