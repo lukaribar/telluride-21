@@ -47,11 +47,12 @@ class GUI:
         
         # Plot nominal voltage trace
         t0, V0 = self.get_sim_data()
-        line0, = self.ax_out.plot(t0, V0, 'C0',alpha=0.4)
+        line, = self.ax_out.plot(t0, V0, 'C0',alpha=0.4)
+        self.vline0 = line
         
         # Define the second voltage trace
         line, = self.ax_out.plot([],[], 'C2')
-        self.voltage_trace = line
+        self.vline_per = line
         
         # Find nominal step reponse
         t, V = self.get_sim_data(step_response = True)
@@ -179,7 +180,7 @@ class GUI:
         return sol.t, sol.y[0]
     
     def update_voltage(self, t, V):
-        self.voltage_trace.set_data(t, V)
+        self.vline_per.set_data(t, V)
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
     
