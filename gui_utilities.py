@@ -53,8 +53,6 @@ class GUI:
         line, = self.ax_out.plot([],[], 'C2')
         self.voltage_trace = line
         
-        #self.run(0)
-        
         # Add Iapp plot
         self.ax_in = self.fig.add_subplot(2, 1, 2)
         self.ax_in.set_position([0.1, 0.55, 0.8, 0.1])
