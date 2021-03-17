@@ -41,7 +41,19 @@ class GUI:
         # Add voltage plot
         self.ax_out = self.fig.add_subplot(2, 1, 1)
         self.ax_out.set_position([0.1, 0.75, 0.8, 0.2])
-        self.run(0)
+        self.ax_out.set_xlim((0, self.t_max))
+        self.ax_out.set_ylim((self.V_min, self.V_max))
+        self.ax_out.set_ylabel('V')
+        
+        # Plot nominal voltage trace
+        t0, V0 = self.get_sim_data()
+        line0, = self.ax_out.plot(t0, V0, 'C0',alpha=0.4)
+        
+        # Define the second voltage trace
+        line, = self.ax_out.plot([],[], 'C2')
+        self.voltage_trace = line
+        
+        #self.run(0)
         
         # Add Iapp plot
         self.ax_in = self.fig.add_subplot(2, 1, 2)
@@ -147,18 +159,22 @@ class GUI:
         
     def add_label(self, x, y, text):
         plt.figtext(x, y, text, horizontalalignment = 'center')
-
-    def run(self, event):
+    
+    def get_sim_data(self):
         trange = (0, self.t_max)
         x0 = [0, self.system.m.inf(0), self.system.h.inf(0),
               self.system.n.inf(0)]
         sol = self.system.simulate(trange, x0, self.i_app)
-        
-        self.ax_out.cla()
-        self.ax_out.set_xlim((0, self.t_max))
-        self.ax_out.set_ylim((self.V_min, self.V_max))
-        self.ax_out.set_ylabel('V')
-        self.ax_out.plot(sol.t, sol.y[0])
+        return sol.t, sol.y[0]
+    
+    def update_voltage(self, t, V):
+        self.voltage_trace.set_data(t, V)
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+    
+    def run(self, event):
+        t, V = self.get_sim_data()
+        self.update_voltage(t, V)
         
     def perturb(self, event):
         # Perturb the model
