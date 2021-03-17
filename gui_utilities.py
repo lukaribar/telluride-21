@@ -29,8 +29,8 @@ class GUI:
         # Parameters for plots
         self.V_min = -20
         self.V_max = 120
-        self.i_min = self.i0 - 1
-        self.i_max = self.i0 + 10
+        self.i_min = -5
+        self.i_max = 20
         self.t_max = 200
         self.t = np.arange(0, self.t_max, 0.1)
         
@@ -49,19 +49,19 @@ class GUI:
         self.update_input()
         
         # Add sliders for magnitudes
-        self.s1 = self.add_slider("Input 1", [0.1, 0.45, 0.3, 0.03], 0, 10,
+        self.s1 = self.add_slider("Input 1", [0.1, 0.45, 0.3, 0.03], 0, 15,
                                   self.mag_list[0], self.alpha_list[0].set_mag)
-        self.s2 = self.add_slider("Input 2", [0.1, 0.4, 0.3, 0.03], 0, 10,
+        self.s2 = self.add_slider("Input 2", [0.1, 0.4, 0.3, 0.03], 0, 15,
                                   self.mag_list[1], self.alpha_list[1].set_mag)
-        self.s3 = self.add_slider("Input 3", [0.1, 0.35, 0.3, 0.03], 0, 10,
+        self.s3 = self.add_slider("Input 3", [0.1, 0.35, 0.3, 0.03], 0, 15,
                                   self.mag_list[2], self.alpha_list[2].set_mag)
         
         # Add sliders for taus
-        self.s4 = self.add_slider("", [0.6, 0.45, 0.3, 0.03], 0.1, 5,
+        self.s4 = self.add_slider("", [0.6, 0.45, 0.3, 0.03], 0.1, 10,
                                   self.tau_list[0], self.alpha_list[0].set_tau)
-        self.s5 = self.add_slider("", [0.6, 0.4, 0.3, 0.03], 0.1, 5,
+        self.s5 = self.add_slider("", [0.6, 0.4, 0.3, 0.03], 0.1, 10,
                                   self.tau_list[1], self.alpha_list[1].set_tau)
-        self.s6 = self.add_slider("", [0.6, 0.35, 0.3, 0.03], 0.1, 5,
+        self.s6 = self.add_slider("", [0.6, 0.35, 0.3, 0.03], 0.1, 10,
                                   self.tau_list[2], self.alpha_list[2].set_tau)
         
         # Add sliders for maximal conductances
@@ -117,8 +117,6 @@ class GUI:
     
     def update_i0(self, val):
         self.i0 = val
-        self.i_min = self.i0 - 1
-        self.i_max = self.i0 + 10
         self.update_input()
     
     def update_gna(self, val):
