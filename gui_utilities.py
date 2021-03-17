@@ -73,7 +73,7 @@ class GUI:
                                   self.system.gl, self.update_gl)
         
         # Add slider for Ibase
-        self.s10 = self.add_slider("$I_{app}$", [0.1, 0.05, 0.3, 0.03], -10,10,
+        self.s10 = self.add_slider("$I_{app}$", [0.1, 0.05, 0.3, 0.03], -15,15,
                                   self.i0, self.update_i0)
         
         # Add run button
