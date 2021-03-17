@@ -96,6 +96,9 @@ class GUI:
         
         # Add perturb button
         self.b2 = self.add_button("Perturb", [0.65, 0.02, 0.1, 0.03], self.perturb)
+        
+        # Add step response button
+        self.b3 = self.add_button("Step", [0.8, 0.07, 0.1, 0.03], self.run_step)
     
     class Alpha:
         def __init__(self, t_start, tau, mag):
@@ -183,6 +186,12 @@ class GUI:
     def run(self, event):
         t, V = self.get_sim_data()
         self.update_voltage(t, V)
+        
+    def run_step(self, event):
+        t, V = self.get_sim_data(step_response=True)
+        plt.figure()
+        plt.plot(self.t0_step, self.V0_step,'C0',alpha=0.4)
+        plt.plot(t, V,'C2')
         
     def perturb(self, event):
         # Perturb the model
