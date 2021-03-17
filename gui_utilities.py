@@ -53,6 +53,11 @@ class GUI:
         line, = self.ax_out.plot([],[], 'C2')
         self.voltage_trace = line
         
+        # Find nominal step reponse
+        t, V = self.get_sim_data(step_response = True)
+        self.t0_step = t
+        self.V0_step = V
+        
         # Add Iapp plot
         self.ax_in = self.fig.add_subplot(2, 1, 2)
         self.ax_in.set_position([0.1, 0.55, 0.8, 0.1])
@@ -158,11 +163,16 @@ class GUI:
     def add_label(self, x, y, text):
         plt.figtext(x, y, text, horizontalalignment = 'center')
     
-    def get_sim_data(self):
+    def get_sim_data(self, step_response = False):
+        if step_response:
+            i_app = lambda t: 10
+        else:
+            i_app = self.i_app
+        
         trange = (0, self.t_max)
         x0 = [0, self.system.m.inf(0), self.system.h.inf(0),
               self.system.n.inf(0)]
-        sol = self.system.simulate(trange, x0, self.i_app)
+        sol = self.system.simulate(trange, x0, i_app)
         return sol.t, sol.y[0]
     
     def update_voltage(self, t, V):
