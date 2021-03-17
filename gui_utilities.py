@@ -77,7 +77,10 @@ class GUI:
                                   self.i0, self.update_i0)
         
         # Add run button
-        self.b = self.add_button("Run", [0.8, 0.02, 0.1, 0.03], self.run)
+        self.b1 = self.add_button("Run", [0.8, 0.02, 0.1, 0.03], self.run)
+        
+        # Add perturb button
+        self.b2 = self.add_button("Perturb", [0.65, 0.02, 0.1, 0.03], self.perturb)
     
     class Alpha:
         def __init__(self, t_start, tau, mag):
@@ -161,5 +164,5 @@ class GUI:
         
     def perturb(self, event):
         # Perturb the model
-        pass
+        self.system.perturb()
         
