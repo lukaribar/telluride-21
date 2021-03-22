@@ -214,7 +214,6 @@ class NeuroDynModel(NeuronalModel):
         self.vLow = self.V_ref + vLow
         
         # Membrane & gate capacitances
-        # self.C_m = 4e-12        # Unit F
         self.C_m = 4e-12        # Unit F
         self.C_gate = 5e-12     # Unit F
         
