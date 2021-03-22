@@ -196,5 +196,9 @@ class GUI:
         
     def perturb(self, event):
         # Perturb the model
-        self.system.perturb()
+        self.system.perturb(0.3)
         
+        # Readjust sliders for max conductance
+        self.s7.set_val(self.system.gna)
+        self.s8.set_val(self.system.gk)
+        self.s9.set_val(self.system.gl)
