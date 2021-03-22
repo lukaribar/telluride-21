@@ -39,8 +39,8 @@ class NeuroDynRate:
         #self.dIb = dIb
         self.Ib = Ib
         self.kappa = kappa  #global?
-        self.Vt = Vt  #global?
-        self.Vb = Vb  #global?
+        self.Vt = Vt        #global?
+        self.Vb = Vb        #global?
         self.sign = sign
 
     def I_rate(self,V):
@@ -214,9 +214,9 @@ class NeuroDynModel(NeuronalModel):
         self.vLow = self.V_ref + vLow
         
         # Membrane & gate capacitances
-        self.C_m = 4e-12 # Unit F
-        # self.C_m = 1e-6     # HH
-        self.C_gate = 5e-12 # Unit F
+        # self.C_m = 4e-12        # Unit F
+        self.C_m = 4e-6        # Unit F
+        self.C_gate = 5e-12     # Unit F
         
         # Scaling parameters (e.g. parameters that set the voltage scale, time scale..)
         self.kappa = 0.7
@@ -279,7 +279,7 @@ class NeuroDynModel(NeuronalModel):
         return dErev * E_factor + self.V_ref
 
     def get_default_rate_pars(self):
-        return self.kappa, self.C_gate, self.Vt, self.I_tau, self.I_ref,self.V_ref
+        return self.kappa, self.C_gate, self.C_m, self.Vt, self.I_tau, self.I_ref,self.V_ref
     
     def get_default_Vb(self):
          # Bias voltages for the 7-point spline regression

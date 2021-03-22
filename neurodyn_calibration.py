@@ -5,12 +5,19 @@ import matplotlib.pyplot as plt
 from scipy.optimize import nnls, minimize, Bounds
 
 ND = NeuroDynModel()
-kappa,C,Vt,I_tau,I_ref,V_ref = ND.get_default_rate_pars()
+kappa,C,C_m,Vt,I_tau,I_ref,V_ref = ND.get_default_rate_pars()
 kappa = 0.7
 
-# Create a HH that is scaled in voltage so that Neurodyn is
-# able to reproduce the geometry of its dynamics
-HH = HHModel(scl=2.2/1e3)
+# Voltage scaling:  V_ND = V_HH * scl_v, with V_HH in [mV]
+scl_v = 2.2/1e3
+# Time scaling:     t_ND = t_HH * scl_t, with t_HH in [ms]
+C_HH = 1    # [\mu F]
+s = 1e3
+scl_t = C_m/C_HH*s
+
+# Create a HH that is scaled in voltage so that Neurodyn is able to reproduce 
+# the geometry of its dynamics
+HH = HHModel(scl=scl_v)
 X = [HH.m,HH.h,HH.n]
 
 plots = False
@@ -28,9 +35,7 @@ def I_rate(Vrange,c,sign,kappa,Vhalf):
 def cost(Z,X,Vrange,kappa,Vt):
     """
     inputs:
-        C_a is list of vector of coefficients to fit alpha functions
-        C_b is list of vector of coefficients to fit beta functions
-        ...
+        Z contains the list of free variables
         X is a list of HHKinetics objects to fit
         Vrange is a vector with voltage values used for fitting
     output:
@@ -132,8 +137,8 @@ Ib = []
 for i,x in enumerate(X):
     # Fit and recover alpha and beta based on linear model
     c_a,c_b,A_alpha,A_beta = lsqfit(x,Vrange,Vhalf,kappa,Vt)
-    i_a = c_a * C * Vt * 1000
-    i_b = c_b * C * Vt * 1000
+    i_a = c_a * C * Vt / scl_t
+    i_b = c_b * C * Vt / scl_t
     Ib.append([i_a, i_b])
     alpha = np.dot(A_alpha,c_a)
     beta = np.dot(A_beta,c_b)
@@ -163,10 +168,9 @@ for i,x in enumerate(X):
         plt.legend()
 
 #%%
+ND = NeuroDynModel(np.array([120,36,0.3])/s, [HH.Ena, HH.Ek, HH.El], Ib, Vmean+3.5*Vstep, Vmean-3.5*Vstep)
 
-ND = NeuroDynModel(np.array([120,36,0.3])*1e-3, [HH.Ena, HH.Ek, HH.El], Ib, Vmean+3.5*Vstep, Vmean-3.5*Vstep)
-
-I0 = 4*2.2*1e-6              # scaling??
+I0 = scl_v*1e-3*10              # scaling??
 Iapp = lambda t : I0
 def Ibump(t):
     if t < 0.004:
