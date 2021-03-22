@@ -14,7 +14,7 @@ scl_v = 2.2
 HH = HHModel(scl=scl_v*1e-3)
 X = [HH.m,HH.h,HH.n]
 
-plots = False
+plots = True
 
 #%% Finding optimal Vstep and Vmean and initial parameters for coefficients
 
@@ -55,8 +55,8 @@ def cost(Z,X,Vrange,kappa,Vt):
     return out  
 
 # Range to do the fit
-Vstart = V_ref+HH.Ek/1e3
-Vend   = 0.08   # V_ref+HH.Ena/1e3
+Vstart = V_ref + HH.Ek
+Vend   = 0.08*scl_v # V_ref + HH.Ena # 0.08
 Vrange = np.arange(start=Vstart, stop=Vend, step=5e-4).T
 
 # Initial parameter values
@@ -111,7 +111,7 @@ if (plots):
 # Time scaling (important: assumes that HH is already written in SI units)
 # We should choose a timescale that allows the coefficients to be quantized
 C_HH = 1e-6
-s = 1/4*1e6                    # 1/4*1e6 ensures ND acts on same timescale as HH
+s = 1/4*1e6              # 1/4*1e6 ensures ND acts on same timescale as HH
 scl_t = s*C_ND/C_HH
 
 # IMPORTANT: c_a and c_b returned by this function ignores the factor of 
