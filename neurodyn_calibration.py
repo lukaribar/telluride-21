@@ -8,16 +8,9 @@ ND = NeuroDynModel()
 kappa,C,C_ND,Vt,I_tau,I_ref,V_ref = ND.get_default_rate_pars()
 kappa = 0.7
 
-# Important: all scaling variables assume that HH is already written in SI units
-# Voltage scaling:
+# Voltage scaling (important: assumes that HH is already written in SI units)
 scl_v = 2.2
-# Time scaling:
-C_HH = 1e-6
-s = 1/4*1e6
-scl_t = s*C_ND/C_HH
-
-# Create a HH that is scaled in voltage so that Neurodyn is able to reproduce 
-# the geometry of its dynamics
+# Create a HH that is scaled in voltage
 HH = HHModel(scl=scl_v*1e-3)
 X = [HH.m,HH.h,HH.n]
 
@@ -115,6 +108,12 @@ if (plots):
 
 #%% Now adjust each I_alpha and I_beta individually
 
+# Time scaling (important: assumes that HH is already written in SI units)
+# We should choose a timescale that allows the coefficients to be quantized
+C_HH = 1e-6
+s = 1/4*1e6                    # 1/4*1e6 ensures ND acts on same timescale as HH
+scl_t = s*C_ND/C_HH
+
 # IMPORTANT: c_a and c_b returned by this function ignores the factor of 
 # 1000 due to HH's time units, which are in miliseconds
 def lsqfit(x,Vrange,Vhalf,kappa,Vt):
@@ -171,7 +170,7 @@ for i,x in enumerate(X):
 #%%
 ND = NeuroDynModel(np.array([120,36,0.3])*1e-3/s,np.array([120,-12,10.6])*1e-3*scl_v, Ib, Vmean+3.5*Vstep, Vmean-3.5*Vstep)
 
-I0 = (10*1e-6)*scl_v/s              # scaling??
+I0 = (10*1e-6)*scl_v/s
 Iapp = lambda t : I0
 def Ibump(t):
     if t < 0.004:
