@@ -215,7 +215,7 @@ class NeuroDynModel(NeuronalModel):
         
         # Membrane & gate capacitances
         # self.C_m = 4e-12        # Unit F
-        self.C_m = 4e-6        # Unit F
+        self.C_m = 4e-12        # Unit F
         self.C_gate = 5e-12     # Unit F
         
         # Scaling parameters (e.g. parameters that set the voltage scale, time scale..)
