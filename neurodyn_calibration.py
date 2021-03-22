@@ -8,6 +8,8 @@ ND = NeuroDynModel()
 kappa,C,Vt,I_tau,I_ref,V_ref = ND.get_default_rate_pars()
 kappa = 0.7
 
+# Create a HH that is scaled in voltage so that Neurodyn is
+# able to reproduce the geometry of its dynamics
 HH = HHModel(scl=2.2/1e3)
 X = [HH.m,HH.h,HH.n]
 
@@ -164,7 +166,7 @@ for i,x in enumerate(X):
 
 ND = NeuroDynModel(np.array([120,36,0.3])*1e-3, [HH.Ena, HH.Ek, HH.El], Ib, Vmean+3.5*Vstep, Vmean-3.5*Vstep)
 
-I0 = 80e-6 # scaling??
+I0 = 4*2.2*1e-6              # scaling??
 Iapp = lambda t : I0
 def Ibump(t):
     if t < 0.004:
