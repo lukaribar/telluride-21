@@ -3,6 +3,7 @@ from scipy.integrate import solve_ivp
 from scipy.optimize import nnls
 import numpy as np
 from numpy import exp
+from copy import deepcopy
 
 class HHKinetics(ABC):
     """
@@ -338,35 +339,7 @@ class NeuroDynModel(NeuronalModel):
 class HHModel(NeuronalModel):
     """
         Hodgkin-Huxley model 
-    """
-    
-#    class Ina:
-#        def __init__(self, gna, Ena):
-#        self.gna = gna
-#        self.Ena = Ena
-#        self.p = 3
-#        self.q = 1
-#        
-#        def out(V, m, h):
-#            return self.gna*(m**p)*(h**q)*(V - self.Ena)
-#        
-#    class Ik:
-#        def __init__(self, gk, Ek):
-#            self.gk = gk
-#            self.Ek = Ek
-#            self.p = 4
-#            
-#        def out(V, n):
-#             return self.gk*(n**p)*(V - self.Ek)
-#         
-#    class Il:
-#        def __init__(self. gl, El):
-#            self.gl = gl
-#            self.El = El
-#        
-#        def out(V):
-#            return self.gl*(V - self.El)
-    
+    """    
     # Default to nominal HH Nernst potentials and maximal conductances
     def __init__(self, gna = 120, gk = 36, gl = 0.3, Ena = 120, Ek = -12, El = 10.6, gates=[],scl=1):
         self.gna = gna
@@ -386,15 +359,23 @@ class HHModel(NeuronalModel):
             self.m = gates[0]
             self.h = gates[1]
             self.n = gates[2]
+        
+        # Gating variable coefficients
+        self.p = 3
+        self.q = 1
+        self.r = 4
+        
+        # Save the nominal object (need to do deep copy here?)
+        self.nominal = deepcopy(self)
 
     def i_int(self,V, m, h, n):
-        return self.gna*m**3*h*(V - self.Ena) + self.gk*n**4*(V - self.Ek) + self.gl*(V - self.El)
+        return self.gna*(m**self.p)*(h**self.q)*(V - self.Ena) + self.gk*(n**self.r)*(V - self.Ek) + self.gl*(V - self.El)
 
     def iNa_ss(self,V):
-        return self.gna*self.m.inf(V)**3*self.h.inf(V)*(V - self.Ena)
+        return self.gna*(self.m.inf(V)**self.p)*(self.h.inf(V)**self.q)*(V - self.Ena)
 
     def iK_ss(self,V):
-        return self.gk*self.n.inf(V)**4*(V - self.Ek)    
+        return self.gk*(self.n.inf(V)**self.r)*(V - self.Ek)    
 
     def iL_ss(self,V):
         return self.gl*(V - self.El)
@@ -406,6 +387,41 @@ class HHModel(NeuronalModel):
         dh = self.h.vfield(h,V)
         dn = self.n.vfield(n,V)
         return [dV, dm, dh, dn]
+    
+    def simulate(self, trange, x0, Iapp, mode="continuous"):
+        # Note: Iapp should be a function of t, e.g., Iapp = lambda t : I0
+        if mode == "continuous":
+            def odesys(t, x):
+                return self.vfield(x, Iapp(t))
+            return solve_ivp(odesys, trange, x0)
+        else:
+            #... code forward-Euler integration
+            return
+    
+    def perturb(self, sigma=0.15):
+        nom = self.nominal
+        
+        # Pertrub exponents
+        self.p = nom.p + 0.2*np.random.randn()
+        self.q = nom.q + 0.1*np.random.randn()
+        self.r = nom.r + 0.2*np.random.randn()
+        
+        # Perturb maximal conductances
+        self.gna = nom.gna * (1 + sigma*np.random.randn())
+        self.gk = nom.gk * (1 + sigma*np.random.randn())
+        self.gl = nom.gl * (1 + sigma*np.random.randn())
+        
+        # Perturb reversal potential
+        self.Ena = nom.Ena * (1 + sigma*np.random.randn())
+        self.Ek = nom.Ek * (1 + sigma*np.random.randn())
+        self.El = nom.El * (1 + sigma*np.random.randn())
+        
+        # Perturb alpha/beta rates
+        gates = [self.m, self.h, self.n]
+        nom_gates = [nom.m, nom.h, nom.n]
+        for x, x_nom in zip(gates, nom_gates):
+            x.aA = x_nom.aA * (1 + sigma*np.random.randn())
+            x.bA = x_nom.bA * (1 + sigma*np.random.randn())
 
 ##### NETWORK-RELATED CLASSES #####
 
