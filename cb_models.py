@@ -387,17 +387,7 @@ class HHModel(NeuronalModel):
         dh = self.h.vfield(h,V)
         dn = self.n.vfield(n,V)
         return [dV, dm, dh, dn]
-    
-    def simulate(self, trange, x0, Iapp, mode="continuous"):
-        # Note: Iapp should be a function of t, e.g., Iapp = lambda t : I0
-        if mode == "continuous":
-            def odesys(t, x):
-                return self.vfield(x, Iapp(t))
-            return solve_ivp(odesys, trange, x0)
-        else:
-            #... code forward-Euler integration
-            return
-    
+        
     def perturb(self, sigma=0.15):
         nom = self.nominal
         
