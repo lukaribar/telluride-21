@@ -37,7 +37,6 @@ class NeuroDynRate:
     NeuroDyn-type alpha or beta functions (kinetic rates)
     """
     def __init__(self,Ib,kappa,Vt,Vb,sign):
-        #self.dIb = dIb
         self.Ib = Ib
         self.kappa = kappa  #global?
         self.Vt = Vt        #global?
@@ -46,7 +45,6 @@ class NeuroDynRate:
 
     def I_rate(self,V):
         I=0
-        #Ib = self.dIb*self.I_tau/1024
         for i in range(np.size(self.Ib)):
             I += self.Ib[i] / (1 + np.exp(self.sign * self.kappa * (self.Vb[i] - V)  / self.Vt))
         return I     
@@ -295,10 +293,10 @@ class NeuroDynModel(NeuronalModel):
         return self.gna*(m**self.p)*(h**self.q)*(V - self.Ena) + self.gk*(n**self.r)*(V - self.Ek) + self.gl*(V - self.El)
 
     def iNa_ss(self,V):
-        return self.gna*self.m.inf(V)**3*self.h.inf(V)*(V - self.Ena)
+        return self.gna*(self.m.inf(V)**self.p)*(self.h.inf(V)**self.q)*(V - self.Ena)
 
     def iK_ss(self,V):
-        return self.gk*self.n.inf(V)**4*(V - self.Ek)    
+        return self.gk*(self.n.inf(V)**self.r)*(V - self.Ek)    
 
     def iL_ss(self,V):
         return self.gl*(V - self.El)
@@ -312,7 +310,6 @@ class NeuroDynModel(NeuronalModel):
         return [dV, dm, dh, dn]
 
     def perturb(self,sigma=0.15):
-        
         # Pertrub exponents
         self.p = 3 + 0.2*np.random.randn()
         self.q = 1 + 0.1*np.random.randn()
