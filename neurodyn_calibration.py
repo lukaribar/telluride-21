@@ -9,12 +9,12 @@ kappa,C,C_ND,Vt,I_tau,I_ref,V_ref = ND.get_default_rate_pars()
 kappa = 0.7
 
 # Voltage scaling (important: assumes that HH is already written in SI units)
-scl_v = 2.2
+scl_v = 3
 # Create a HH that is scaled in voltage
 HH = HHModel(scl=scl_v*1e-3)
 X = [HH.m,HH.h,HH.n]
 
-plots = True
+plots = False
 
 #%% Finding optimal Vstep and Vmean and initial parameters for coefficients
 
