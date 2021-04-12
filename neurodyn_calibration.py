@@ -108,12 +108,6 @@ if (plots):
 
 #%% Now adjust each I_alpha and I_beta individually
 
-# Time scaling (important: assumes that HH is already written in SI units)
-# We should choose a timescale that allows the coefficients to be quantized
-C_HH = 1e-6
-s = 1/4*1e6              # 1/4*1e6 ensures ND acts on same timescale as HH
-scl_t = s*C_ND/C_HH
-
 # IMPORTANT: c_a and c_b returned by this function ignores the factor of 
 # 1000 due to HH's time units, which are in miliseconds
 def lsqfit(x,Vrange,Vhalf,kappa,Vt):
@@ -133,15 +127,25 @@ def lsqfit(x,Vrange,Vhalf,kappa,Vt):
 
     return c_a,c_b,A_alpha,A_beta
 
-Ib = []
+# Find maximal sigmoidal basis function coefficients
+cmax = 0
+
+# Find optimal sigmoidal basis functions coefficients and plot the fits
+c = []
+A = []
 for i,x in enumerate(X):
-    # Fit and recover alpha and beta based on linear model
     c_a,c_b,A_alpha,A_beta = lsqfit(x,Vrange,Vhalf,kappa,Vt)
-    i_a = c_a * C * Vt * 1000 / scl_t
-    i_b = c_b * C * Vt * 1000 / scl_t
-    Ib.append([i_a, i_b])
-    alpha = np.dot(A_alpha,c_a)
-    beta = np.dot(A_beta,c_b)
+    for j,coeff in enumerate(c_a):
+        if coeff > cmax:
+            cmax = coeff 
+    for j,coeff in enumerate(c_b):
+        if coeff > cmax:
+            cmax = coeff 
+    c.append([c_a, c_b])
+    A.append([A_alpha, A_beta])
+
+    alpha = np.dot(A[i][0],c[i][0])
+    beta = np.dot(A[i][1],c[i][1])
     tau = 1/(alpha+beta)
     inf = alpha/(alpha+beta)
     
@@ -167,8 +171,32 @@ for i,x in enumerate(X):
         plt.plot(Vrange,inf,label='fit '+gatelabels[i]+'_∞')
         plt.legend()
 
+# Time scaling (important: assumes that HH is already written in SI units)
+# Factor the time scaling into a factor that sets the ND capacitance (C_ND/C_HH)
+# and a factor (s) that ensures the maximum Ib is given by 1023*I_tau/1024
+C_HH = 1e-6
+s = cmax * C * Vt / (1023*I_tau/1024) * 1000 * C_HH / C_ND
+# s = 1/4*1e6             # Note: this value makes ND timescale equal to HH timescale
+scl_t = s*C_ND/C_HH     
+
+# Recover the (quantized) rate currents from fitted coefficients
+Ib = []
+dIb = []
+for i,x in enumerate(X):
+    # Exact (real numbers) current coefficients, before quantization
+    i_a = c[i][0] * C * Vt * 1000 / scl_t 
+    i_b = c[i][1] * C * Vt * 1000 / scl_t
+    Ib.append([i_a, i_b])
+    # Quantize current coefficients
+    di_a = np.round(i_a*1024/I_tau)
+    di_b = np.round(i_b*1024/I_tau)
+    dIb.append([di_a, di_b])
+
+Ib = np.array(Ib)*1024/I_tau
+dIb = np.array(dIb)
+
 #%%
-ND = NeuroDynModel(np.array([120,36,0.3])*1e-3/s,np.array([120,-12,10.6])*1e-3*scl_v, Ib, Vmean+3.5*Vstep, Vmean-3.5*Vstep)
+ND = NeuroDynModel(np.array([120,36,0.3])*1e-3/s,np.array([120,-12,10.6])*1e-3*scl_v, dIb, Vmean+3.5*Vstep, Vmean-3.5*Vstep)
 
 I0 = (10*1e-6)*scl_v/s
 Iapp = lambda t : I0
@@ -178,7 +206,7 @@ def Ibump(t):
     else:
         return I0 + 1e-3*t**2*np.exp(-(t-0.004)/1e-5)
 
-T = 0.2
+T = 0.01
 trange = (0, T)
 
 # Simulate different perturbed instances of the neuron

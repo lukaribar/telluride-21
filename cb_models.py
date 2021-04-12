@@ -57,40 +57,17 @@ class NeuroDynActivation(HHKinetics):
             functions are used to find the values of dIb
         2)  By passing dIb manually
     """
-    def __init__(self,*args):
-        if isinstance(args[0],HHKinetics):
-            x,kappa,C,Vt,Vb = args
-            Ib_alpha,Ib_beta = self.fit(x,kappa,C,Vt,Vb)
-        else:
-            Ib,kappa,C,Vt,Vb  = args
-            Ib_alpha = Ib[0]
-            Ib_beta = Ib[1]
-        
+    def __init__(self,dIb,kappa,C,Vt,Vb):
         self.C = C
         self.Vt = Vt    
-        self.alpharate = NeuroDynRate(Ib_alpha,kappa,Vt,Vb,1)
-        self.betarate = NeuroDynRate(Ib_beta,kappa,Vt,Vb,-1) 
+        self.alpharate = NeuroDynRate(dIb[0],kappa,Vt,Vb,1)
+        self.betarate = NeuroDynRate(dIb[1],kappa,Vt,Vb,-1) 
     
     def alpha(self,V):
         return self.alpharate.I_rate(V) / (self.C * self.Vt)
 
     def beta(self,V):
         return self.betarate.I_rate(V) / (self.C * self.Vt)
-
-    def fit(self,x,kappa,C,Vt,Vb):
-        V = np.arange(start=-0.015, stop=0.15, step=5e-4).T
-        A_alpha = np.zeros((np.size(V),7))
-        A_beta = np.zeros((np.size(V),7))
-        b_alpha = x.alpha(V) / np.amax(x.alpha(V)) 
-        b_beta = x.beta(V) / np.amax(x.beta(V))
-        for i in range(7):
-           A_alpha[:,i] = 1 / (1 + np.exp(1 * kappa * (Vb[i] - V)  / Vt))
-           A_beta[:,i] = 1 / (1 + np.exp(-1 * kappa * (Vb[i] - V)  / Vt))
-        Ib_alpha = nnls(A_alpha,b_alpha)[0]
-        Ib_beta = nnls(A_beta,b_beta)[0]
-
-        return Ib_alpha,Ib_beta
-        #quantize and adjust for Itau
     
 class NeuroDynInactivation(HHKinetics):
     """
@@ -202,7 +179,7 @@ class NeuroDynModel(NeuronalModel):
     NeuroDyn model
     """
     
-    def __init__(self, dg=[400, 160, 12], dErev=[450, -250, -150], Ib=[], vHigh=0.426, vLow=-0.434):
+    def __init__(self, dg=[400, 160, 12], dErev=[450, -250, -150], dIb=[], vHigh=0.426, vLow=-0.434):
         self.V_ref = 0              # Unit V , 1 volt
         self.I_tau = 33e-9          # Unit A
         self.I_voltage = 230e-9     # Unit A
@@ -246,7 +223,8 @@ class NeuroDynModel(NeuronalModel):
         self.r = 4
         
         Vb = self.get_default_Vb()
-        if (Ib == []):
+
+        if (dIb == []):
             # Default to nominal NeuroDyn activation parameters
             dIb_m = np.array([[0, 0, 120, 400, 800, 1023, 1023],
                      [1023, 1023, 1023, 1023, 0, 0, 0]])
@@ -258,9 +236,9 @@ class NeuroDynModel(NeuronalModel):
             Ib_h = dIb_h * self.I_tau / 1024
             Ib_n = dIb_n * self.I_tau / 1024
         else:
-            Ib_m = Ib[0]
-            Ib_h = Ib[1]
-            Ib_n = Ib[2]
+            Ib_m = dIb[0] * self.I_tau / 1024
+            Ib_h = dIb[1] * self.I_tau / 1024
+            Ib_n = dIb[2] * self.I_tau / 1024
             
         self.m = NeuroDynActivation(Ib_m,self.kappa,self.C_gate,self.Vt,Vb)
         self.h = NeuroDynInactivation(Ib_h,self.kappa,self.C_gate,self.Vt,Vb)
@@ -427,7 +405,7 @@ class NeuroDynAMPA(NeuroDynActivation):
         Vb = [V_T,-10,0,0,0,0,0] 
         # IMPORTANT: WE CAN'T REALLY USE THE SIGMOIDS THIS WAY.
         # WE NEED TO FIT THE 7 SIGMOIDS TO THE AMPA SIGMOID
-        super().__init__(dIb,kappa,C,Kp*kappa,Vb,I_tau)  
+        super().__init__(dIb,kappa,C,Kp*kappa,Vb) 
 
 class AMPA(HHKinetics):
     """
