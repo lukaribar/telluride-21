@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod  # for abstract classes
 from scipy.integrate import solve_ivp
-from scipy.optimize import nnls
 import numpy as np
 from numpy import exp
 from copy import deepcopy
