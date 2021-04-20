@@ -52,16 +52,12 @@ class NeuroDynRate:
 class NeuroDynActivation(HHKinetics):
     """
     NeuroDyn-type activation gating variable kinetics.
-    There are two ways of initializing the object:
-        1)  By passing an object of HHKinetics type whose alpha/beta
-            functions are used to find the values of dIb
-        2)  By passing dIb manually
     """
-    def __init__(self,dIb,kappa,C,Vt,Vb):
+    def __init__(self,Ib,kappa,C,Vt,Vb):
         self.C = C
         self.Vt = Vt    
-        self.alpharate = NeuroDynRate(dIb[0],kappa,Vt,Vb,1)
-        self.betarate = NeuroDynRate(dIb[1],kappa,Vt,Vb,-1) 
+        self.alpharate = NeuroDynRate(Ib[0],kappa,Vt,Vb,1)
+        self.betarate = NeuroDynRate(Ib[1],kappa,Vt,Vb,-1) 
     
     def alpha(self,V):
         return self.alpharate.I_rate(V) / (self.C * self.Vt)
@@ -73,11 +69,11 @@ class NeuroDynInactivation(HHKinetics):
     """
     NeuroDyn-type activation gating variable kinetics.
     """
-    def __init__(self,dIb,kappa,C,Vt,Vb):
+    def __init__(self,Ib,kappa,C,Vt,Vb):
         self.C = C
         self.Vt = Vt
-        self.alpharate = NeuroDynRate(dIb[0],kappa,Vt,Vb,-1) 
-        self.betarate = NeuroDynRate(dIb[1],kappa,Vt,Vb,1) 
+        self.alpharate = NeuroDynRate(Ib[0],kappa,Vt,Vb,-1) 
+        self.betarate = NeuroDynRate(Ib[1],kappa,Vt,Vb,1) 
     
     def alpha(self,V):
         return self.alpharate.I_rate(V) / (self.C * self.Vt)
