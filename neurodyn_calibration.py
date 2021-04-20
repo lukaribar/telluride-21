@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import nnls, minimize, Bounds
 
 ND = NeuroDynModel()
-kappa,C,C_ND,Vt,I_tau,I_ref,V_ref = ND.get_default_rate_pars()
+kappa,C,C_ND,Vt,I_tau,I_ref,V_ref = ND.get_rate_pars()
 kappa = 0.7
 
 # Voltage scaling (important: assumes that HH is already written in SI units)

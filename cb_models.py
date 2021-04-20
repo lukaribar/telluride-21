@@ -37,9 +37,9 @@ class NeuroDynRate:
     """
     def __init__(self,Ib,kappa,Vt,Vb,sign):
         self.Ib = Ib
-        self.kappa = kappa  #global?
-        self.Vt = Vt        #global?
-        self.Vb = Vb        #global?
+        self.kappa = kappa
+        self.Vt = Vt
+        self.Vb = Vb
         self.sign = sign
 
     def I_rate(self,V):
@@ -217,7 +217,7 @@ class NeuroDynModel(NeuronalModel):
         self.q = 1
         self.r = 4
         
-        Vb = self.get_default_Vb()
+        Vb = self.get_Vb()
 
         if (dIb == []):
             # Default to nominal NeuroDyn activation parameters
@@ -249,10 +249,10 @@ class NeuroDynModel(NeuronalModel):
         E_factor = (self.I_voltage / 1024) * self.Res
         return dErev * E_factor + self.V_ref
 
-    def get_default_rate_pars(self):
+    def get_rate_pars(self):
         return self.kappa, self.C_gate, self.C_m, self.Vt, self.I_tau, self.I_ref,self.V_ref
     
-    def get_default_Vb(self):
+    def get_Vb(self):
          # Bias voltages for the 7-point spline regression
         Vb = np.zeros(7) # Define the 7 bias voltages
         I_factor = (self.vHigh - self.vLow) / 700e-3
