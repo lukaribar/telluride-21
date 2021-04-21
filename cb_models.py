@@ -249,7 +249,7 @@ class NeuroDynModel(NeuronalModel):
         E_factor = (self.I_voltage / 1024) * self.Res
         return dErev * E_factor + self.V_ref
 
-    def get_rate_pars(self):
+    def get_pars(self):
         return self.kappa, self.C_gate, self.C_m, self.Vt, self.I_tau, self.I_ref,self.V_ref
     
     def get_Vb(self):
