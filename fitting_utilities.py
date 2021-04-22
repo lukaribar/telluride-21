@@ -27,9 +27,98 @@ class FitND:
         # Physical constants -> params = kappa,C,C_ND,Vt,I_tau,I_ref,V_ref
         self.params = self.NDModel.get_pars()
         
+        # Maximal coefficient
+        self.cmax = 0
+        
         # Initial fit to find optimal Vstep and Vmean for spline bias voltages
         self.initial_fit()
+                
     
+    def fit(self, X=[], labels=[], plot_alpha_beta=False, plot_inf_tau=False):
+        """
+        Fit a list of gating variables in X
+        """
+        kappa,C,C_ND,Vt,I_tau,I_ref,V_ref = self.params
+        Vrange = self.vrange
+        c = []
+        A = []
+        
+        # By default just fit the original HH gating variables
+        if (X == []):
+            X = [self.HHModel.m,self.HHModel.h,self.HHModel.n]
+            labels = ['m','h','n']
+        elif (labels == []):
+            labels = []*len(X) # put empty labels if none provided
+        
+        # Fit the variables and plot results
+        for x,label in zip(X,labels):
+            c_a,c_b,A_alpha,A_beta = self.fit_gating_variable(x)
+            c.append([c_a, c_b])
+            A.append([A_alpha, A_beta])
+            
+            alpha = np.dot(A_alpha,c_a)
+            beta = np.dot(A_beta,c_b)
+            tau = 1/(alpha+beta)
+            inf = alpha/(alpha+beta)
+            
+            # Plot alpha and beta fits
+            if (plot_alpha_beta):
+                plt.figure()
+                plt.plot(Vrange,x.alpha(Vrange),label='HH α_'+label)
+                plt.plot(Vrange,alpha,label='fit α_'+label)
+                plt.legend()
+            
+                plt.figure()
+                plt.plot(Vrange,x.beta(Vrange),label='HH β_'+label)
+                plt.plot(Vrange,beta,label='fit β_'+label)
+                plt.legend()
+            
+            # Plot xinf and tau fits
+            if (plot_inf_tau):
+                tau = 1/(alpha+beta)
+                inf = alpha/(alpha+beta)
+    
+                plt.figure()
+                plt.plot(Vrange,x.tau(Vrange),label='HH τ_'+label)
+                plt.plot(Vrange,tau,label='fit τ_'+label)
+                plt.legend()
+        
+                plt.figure()
+                plt.plot(Vrange,x.inf(Vrange),label='HH '+label+'_∞')
+                plt.plot(Vrange,inf,label='fit '+label+'_∞')
+                plt.legend()
+        
+        # Find maximum coefficient
+        cmax = np.array(c).max()
+        if (cmax > self.cmax):
+            self.cmax = cmax
+        
+        # Find the scaling factors
+        C_HH = 1e-6
+        scl_t = self.cmax * C * Vt / (1023*I_tau/1024) * 1000
+        s = scl_t * C_HH / C_ND
+        self.scl_t = scl_t
+        self.s = s
+        
+        # Recover the (quantized) rate currents from fitted coefficients
+        Ib = []
+        dIb = []
+        for i,x in enumerate(X):
+            # Exact (real numbers) current coefficients, before quantization
+            i_a = c[i][0] * C * Vt * 1000 / scl_t 
+            i_b = c[i][1] * C * Vt * 1000 / scl_t
+            Ib.append([i_a, i_b])
+            # Quantize current coefficients
+            di_a = np.round(i_a*1024/I_tau)
+            di_b = np.round(i_b*1024/I_tau)
+            dIb.append([di_a, di_b])
+        
+        Ib = np.array(Ib)*1024/I_tau
+        dIb = np.array(dIb)
+        
+        return dIb
+        
+
     def fit_gating_variable(self, x):
         """
         Fit a single gating variable using non-negative least squares
@@ -56,7 +145,25 @@ class FitND:
     
         return c_a,c_b,A_alpha,A_beta
 
+    def get_Vb_bounds(self):
+        return self.Vmean+3.5*self.Vstep, self.Vmean-3.5*self.Vstep
     
+    # This should return digital values
+    def convert_gmax(self, g0_list):
+        g_list = [g0*1e-3/self.s for g0 in g0_list]
+        return g_list
+    
+    # This should return digital values
+    def convert_Erev(self, E0_list):
+        scl_v = self.HHModel.scl # note: includes V->mV conversion
+        E_list = [E0*scl_v for E0 in E0_list]
+        return E_list
+    
+    def convert_I(self, I0):
+        scl_v = self.HHModel.scl # note: includes V->mV conversion
+        I = (I0*1e-3)*scl_v/self.s # Note e-3 instead of 1e-6 because of scl_v
+        return I
+        
     def I_rate(self,c,sign,Vb):
         kappa,C,C_ND,Vt,I_tau,I_ref,V_ref = self.params
         I=0
@@ -64,6 +171,7 @@ class FitND:
             I += c[i] / (1 + np.exp(sign * kappa * (Vb[i] - self.vrange)  / Vt))
         return I
     
+    # Only used for the initial fit
     def cost(self,Z,X):
         """
         inputs:
@@ -94,6 +202,9 @@ class FitND:
                 return
             
         return out
+    
+    def get_Vb(self):
+        return self.Vmean + np.arange(start=-3,stop=4,step=1)*self.Vstep
     
     def initial_fit(self):
         """
@@ -128,9 +239,7 @@ class FitND:
         self.Z0 = Z
         return
     
-    def get_Vb(self):
-        return self.Vmean + np.arange(start=-3,stop=4,step=1)*self.Vstep
-    
+    # This should probably go into initial_fit method
     def plot_initial_fit(self, plot_alpha_beta = True, plot_inf_tau = False):
         print("Vmean:", self.Vmean)
         print("Vstep:", self.Vstep)
