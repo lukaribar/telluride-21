@@ -176,9 +176,12 @@ class NeuroDynModel(NeuronalModel):
     
     def __init__(self, dg=[400, 160, 12], dErev=[450, -250, -150], dIb=[], vHigh=0.426, vLow=-0.434):
         self.V_ref = 0              # Unit V , 1 volt
-        self.I_tau = 33e-9          # Unit A
-        self.I_voltage = 230e-9     # Unit A
-        self.I_ref = 15e-9          # Unit A
+        self.I_tau = 200e-9          # Unit A
+        self.I_voltage = 270e-9     # Unit A
+        self.I_ref = 100e-9          # Unit A
+        #self.I_tau = 33e-9          # Unit A
+        #self.I_voltage = 230e-9     # Unit A
+        #self.I_ref = 15e-9          # Unit A
 
         # Relationship to V_ref it is not zero?
         self.vHigh = self.V_ref + vHigh
