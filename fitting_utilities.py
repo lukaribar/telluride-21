@@ -103,7 +103,7 @@ class FitND:
         This is done so as to jointly maximize the resolution of the conductances 
         and the coefficients.
         """
-        kappa,C,C_ND,Vt,I_tau,_,_ = self.params
+        #kappa,C,C_ND,Vt,I_tau,_,_ = self.params
 
         # Find maximum coefficient
         cmax = np.array(c).max()
@@ -112,7 +112,7 @@ class FitND:
 
         # Find the scaling factor that maximizes coefficient resolution
         C_HH = 1e-6
-        scl_t = self.cmax * C * Vt / (1023*I_tau/1024) * 1000
+        scl_t = self.cmax * self.C * self.Vt / (1023*self.I_tau/1024) * 1000
         if (scl_t > self.scl_t):
             self.scl_t = scl_t
 
@@ -122,30 +122,30 @@ class FitND:
             self.gmax = gmax
 
         # Find the scaling factor that maximizes conductance resolution
-        scl_t = self.gmax * 1e-3 * Vt / kappa / (1023*I_tau/1024) * C_ND / C_HH
+        scl_t = self.gmax * 1e-3 * self.Vt / self.kappa / (1023*self.I_tau/1024) * self.C_ND / C_HH
         if (scl_t > self.scl_t):
             self.scl_t = scl_t
 
         # Recover the (quantized) rate currents from fitted coefficients
-        self.s = self.scl_t * C_HH / C_ND
+        self.s = self.scl_t * C_HH / self.C_ND
         Ib = []
         dIb = []
         dg = []
         for i in range(len(c)):
             # Exact (real numbers) current coefficients, before quantization
-            i_a = c[i][0] * C * Vt * 1000 / self.scl_t 
-            i_b = c[i][1] * C * Vt * 1000 / self.scl_t
+            i_a = c[i][0] * self.C * self.Vt * 1000 / self.scl_t 
+            i_b = c[i][1] * self.C * self.Vt * 1000 / self.scl_t
             Ib.append([i_a, i_b])
             # Quantize current coefficients
-            di_a = np.round(i_a*1024/I_tau)
-            di_b = np.round(i_b*1024/I_tau)
+            di_a = np.round(i_a*1024/self.I_tau)
+            di_b = np.round(i_b*1024/self.I_tau)
             dIb.append([di_a, di_b])
 
-        Ib = np.array(Ib)*1024/I_tau
+        Ib = np.array(Ib)*1024/self.I_tau
         dIb = np.array(dIb)
 
         # Quantize conductances
-        dg = np.round(np.array(g)*1e-3*1024*Vt/kappa/I_tau/self.s)
+        dg = np.round(np.array(g)*1e-3*1024*self.Vt/self.kappa/self.I_tau/self.s)
 
         return dIb,dg
         
@@ -156,7 +156,7 @@ class FitND:
         IMPORTANT: c_a and c_b returned by this function ignores the factor of 
         1000 due to HH's time units, which are in miliseconds
         """
-        kappa,_,_,Vt,_,_,_ = self.params
+        #kappa,_,_,Vt,_,_,_ = self.params
         Vrange = self.vrange
         Vb = self.get_Vb()
         
@@ -166,11 +166,11 @@ class FitND:
         b_beta = x.beta(Vrange)
         for i in range(7):
             if isinstance(x,HHActivation):
-                A_alpha[:,i] = 1 / (1 + np.exp(1 * kappa * (Vb[i] - Vrange)  / Vt))
-                A_beta[:,i] = 1 / (1 + np.exp(-1 * kappa * (Vb[i] - Vrange)  / Vt))
+                A_alpha[:,i] = 1 / (1 + np.exp(1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
+                A_beta[:,i] = 1 / (1 + np.exp(-1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
             else:
-                A_alpha[:,i] = 1 / (1 + np.exp(-1 * kappa * (Vb[i] - Vrange)  / Vt))
-                A_beta[:,i] = 1 / (1 + np.exp(1 * kappa * (Vb[i] - Vrange)  / Vt))
+                A_alpha[:,i] = 1 / (1 + np.exp(-1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
+                A_beta[:,i] = 1 / (1 + np.exp(1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
         c_a = nnls(A_alpha,b_alpha)[0]
         c_b = nnls(A_beta,b_beta)[0]
     
@@ -191,10 +191,10 @@ class FitND:
         return I
         
     def I_rate(self,c,sign,Vb):
-        kappa,_,_,Vt,_,_,_ = self.params
+        #kappa,_,_,Vt,_,_,_ = self.params
         I=0
         for i in range(len(Vb)):
-            I += c[i] / (1 + np.exp(sign * kappa * (Vb[i] - self.vrange)  / Vt))
+            I += c[i] / (1 + np.exp(sign * self.kappa * (Vb[i] - self.vrange)  / self.Vt))
         return I
     
     # Only used for the initial fit
@@ -236,7 +236,7 @@ class FitND:
         """
         Initial fit to find optimal bias voltages
         """
-        _,_,_,_,_,_,V_ref = self.params
+        #_,_,_,_,_,_,V_ref = self.params
         
         # Fit Hodgkin-Huxley gating variables
         X = [self.HHModel.m,self.HHModel.h,self.HHModel.n]
@@ -244,11 +244,11 @@ class FitND:
         # Initial parameter values
         C_a = np.array([])
         C_b = np.array([])
-        for _, x in enumerate(X):
+        for x in X:
             C_a = np.append(C_a,max(x.alpha(self.vrange))*np.ones(7)/7)
             C_b = np.append(C_b,max(x.beta(self.vrange))*np.ones(7)/7)
-        Vmean = V_ref
-        Vstep = (V_ref+self.HHModel.Ena/1e3 - V_ref+self.HHModel.Ek/1e3)/100
+        Vmean = self.V_ref
+        Vstep = (self.V_ref+self.HHModel.Ena/1e3 - self.V_ref+self.HHModel.Ek/1e3)/100
         Z0 = np.concatenate([C_a,C_b,np.array([Vmean,Vstep])])
         
         lowerbd = np.append(np.zeros(14*len(X)),np.array([-np.inf,-np.inf]))
