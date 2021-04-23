@@ -202,12 +202,12 @@ class NeuroDynModel(NeuronalModel):
                 
         # Convert digital to physical
         self.gna,self.gk,self.gl = self.convert_conductance(dg)
-        self.Ena = dErev[0]
-        self.Ek = dErev[1]
-        self.El = dErev[2]
-        #self.Ena = self.convert_potential(dErev[0])
-        #self.Ek = self.convert_potential(dErev[1])
-        #self.El = self.convert_potential(dErev[2])
+        #self.Ena = dErev[0]
+        #self.Ek = dErev[1]
+        #self.El = dErev[2]
+        self.Ena = self.convert_potential(dErev[0])
+        self.Ek = self.convert_potential(dErev[1])
+        self.El = self.convert_potential(dErev[2])
         
         # Gating variable coefficients
         self.p = 3

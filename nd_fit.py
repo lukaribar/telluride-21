@@ -28,7 +28,7 @@ Iapp = lambda t : I0
 E = fit.convert_Erev(E0)
 Vhigh, Vlow = fit.get_Vb_bounds()
 
-ND = NeuroDynModel(dg, E, dIb, Vhigh, Vlow)
+ND = NeuroDynModel(dg, dE, dIb, Vhigh, Vlow)
 
 T = 0.01
 trange = (0, T)
