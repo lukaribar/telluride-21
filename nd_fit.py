@@ -24,8 +24,6 @@ dIb,dg,dE = fit.quantize(c,g0,E0)
 I0 = fit.convert_I(0)
 Iapp = lambda t : I0
 
-# g = fit.convert_gmax(g0)
-E = fit.convert_Erev(E0)
 Vhigh, Vlow = fit.get_Vb_bounds()
 
 ND = NeuroDynModel(dg, dE, dIb, Vhigh, Vlow)
