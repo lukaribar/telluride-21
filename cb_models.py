@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod  # for abstract classes
 from scipy.integrate import solve_ivp
-from scipy.optimize import nnls
 import numpy as np
 from numpy import exp
 from copy import deepcopy
@@ -38,9 +37,9 @@ class NeuroDynRate:
     """
     def __init__(self,Ib,kappa,Vt,Vb,sign):
         self.Ib = Ib
-        self.kappa = kappa  #global?
-        self.Vt = Vt        #global?
-        self.Vb = Vb        #global?
+        self.kappa = kappa
+        self.Vt = Vt
+        self.Vb = Vb
         self.sign = sign
 
     def I_rate(self,V):
@@ -52,16 +51,12 @@ class NeuroDynRate:
 class NeuroDynActivation(HHKinetics):
     """
     NeuroDyn-type activation gating variable kinetics.
-    There are two ways of initializing the object:
-        1)  By passing an object of HHKinetics type whose alpha/beta
-            functions are used to find the values of dIb
-        2)  By passing dIb manually
     """
-    def __init__(self,dIb,kappa,C,Vt,Vb):
+    def __init__(self,Ib,kappa,C,Vt,Vb):
         self.C = C
         self.Vt = Vt    
-        self.alpharate = NeuroDynRate(dIb[0],kappa,Vt,Vb,1)
-        self.betarate = NeuroDynRate(dIb[1],kappa,Vt,Vb,-1) 
+        self.alpharate = NeuroDynRate(Ib[0],kappa,Vt,Vb,1)
+        self.betarate = NeuroDynRate(Ib[1],kappa,Vt,Vb,-1) 
     
     def alpha(self,V):
         return self.alpharate.I_rate(V) / (self.C * self.Vt)
@@ -73,11 +68,11 @@ class NeuroDynInactivation(HHKinetics):
     """
     NeuroDyn-type activation gating variable kinetics.
     """
-    def __init__(self,dIb,kappa,C,Vt,Vb):
+    def __init__(self,Ib,kappa,C,Vt,Vb):
         self.C = C
         self.Vt = Vt
-        self.alpharate = NeuroDynRate(dIb[0],kappa,Vt,Vb,-1) 
-        self.betarate = NeuroDynRate(dIb[1],kappa,Vt,Vb,1) 
+        self.alpharate = NeuroDynRate(Ib[0],kappa,Vt,Vb,-1) 
+        self.betarate = NeuroDynRate(Ib[1],kappa,Vt,Vb,1) 
     
     def alpha(self,V):
         return self.alpharate.I_rate(V) / (self.C * self.Vt)
@@ -181,9 +176,12 @@ class NeuroDynModel(NeuronalModel):
     
     def __init__(self, dg=[400, 160, 12], dErev=[450, -250, -150], dIb=[], vHigh=0.426, vLow=-0.434):
         self.V_ref = 0              # Unit V , 1 volt
-        self.I_tau = 33e-9          # Unit A
-        self.I_voltage = 230e-9     # Unit A
-        self.I_ref = 15e-9          # Unit A
+        self.I_tau = 200e-9          # Unit A
+        self.I_voltage = 270e-9     # Unit A
+        self.I_ref = 100e-9          # Unit A
+        #self.I_tau = 33e-9          # Unit A
+        #self.I_voltage = 230e-9     # Unit A
+        #self.I_ref = 15e-9          # Unit A
 
         # Relationship to V_ref it is not zero?
         self.vHigh = self.V_ref + vHigh
@@ -222,7 +220,7 @@ class NeuroDynModel(NeuronalModel):
         self.q = 1
         self.r = 4
         
-        Vb = self.get_default_Vb()
+        Vb = self.get_Vb()
 
         if (dIb == []):
             # Default to nominal NeuroDyn activation parameters
@@ -254,10 +252,10 @@ class NeuroDynModel(NeuronalModel):
         E_factor = (self.I_voltage / 1024) * self.Res
         return dErev * E_factor + self.V_ref
 
-    def get_default_rate_pars(self):
+    def get_pars(self):
         return self.kappa, self.C_gate, self.C_m, self.Vt, self.I_tau, self.I_ref,self.V_ref
     
-    def get_default_Vb(self):
+    def get_Vb(self):
          # Bias voltages for the 7-point spline regression
         Vb = np.zeros(7) # Define the 7 bias voltages
         I_factor = (self.vHigh - self.vLow) / 700e-3
