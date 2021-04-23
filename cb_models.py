@@ -470,7 +470,7 @@ class NeuronalNetwork:
             i_gap = 0
             
             Vpost = x[i*4]
-            for j, neuron_j in enumerate(self.neurons):
+            for j, _ in enumerate(self.neurons):
                 Vpre = x[j*4]
                 if (self.synAdj[i][j]):
                     for syn in self.syns[i][j]:

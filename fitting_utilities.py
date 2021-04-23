@@ -102,7 +102,7 @@ class FitND:
         This is done so as to jointly maximize the resolution of the conductances 
         and the coefficients.
         """
-        kappa,C,C_ND,Vt,I_tau,I_ref,V_ref = self.params
+        kappa,C,C_ND,Vt,I_tau,_,_ = self.params
 
         # Find maximum coefficient
         cmax = np.array(c).max()
@@ -155,7 +155,7 @@ class FitND:
         IMPORTANT: c_a and c_b returned by this function ignores the factor of 
         1000 due to HH's time units, which are in miliseconds
         """
-        kappa,C,C_ND,Vt,I_tau,I_ref,V_ref = self.params
+        kappa,_,_,Vt,_,_,_ = self.params
         Vrange = self.vrange
         Vb = self.get_Vb()
         
@@ -195,7 +195,7 @@ class FitND:
         return I
         
     def I_rate(self,c,sign,Vb):
-        kappa,C,C_ND,Vt,I_tau,I_ref,V_ref = self.params
+        kappa,_,_,Vt,_,_,_ = self.params
         I=0
         for i in range(len(Vb)):
             I += c[i] / (1 + np.exp(sign * kappa * (Vb[i] - self.vrange)  / Vt))
@@ -240,7 +240,7 @@ class FitND:
         """
         Initial fit to find optimal bias voltages
         """
-        kappa,C,C_ND,Vt,I_tau,I_ref,V_ref = self.params
+        _,_,_,_,_,_,V_ref = self.params
         
         # Fit Hodgkin-Huxley gating variables
         X = [self.HHModel.m,self.HHModel.h,self.HHModel.n]
@@ -248,7 +248,7 @@ class FitND:
         # Initial parameter values
         C_a = np.array([])
         C_b = np.array([])
-        for i, x in enumerate(X):
+        for _, x in enumerate(X):
             C_a = np.append(C_a,max(x.alpha(self.vrange))*np.ones(7)/7)
             C_b = np.append(C_b,max(x.beta(self.vrange))*np.ones(7)/7)
         Vmean = V_ref
