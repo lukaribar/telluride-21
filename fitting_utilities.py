@@ -114,7 +114,6 @@ class FitND:
         scl_t = self.cmax * C * Vt / (1023*I_tau/1024) * 1000
         if (scl_t > self.scl_t):
             self.scl_t = scl_t
-            self.s = scl_t * C_HH / C_ND
 
         # Find maximum conductance
         gmax = np.array(g).max()
@@ -122,13 +121,12 @@ class FitND:
             self.gmax = gmax
 
         # Find the scaling factor that maximizes conductance resolution
-        s = self.gmax * 1e-3 * Vt / kappa / (1023*I_tau/1024) 
-        scl_t = s * C_ND / C_HH
+        scl_t = self.gmax * 1e-3 * Vt / kappa / (1023*I_tau/1024) * C_ND / C_HH
         if (scl_t > self.scl_t):
             self.scl_t = scl_t
-            self.s = s
-        
+
         # Recover the (quantized) rate currents from fitted coefficients
+        self.s = self.scl_t * C_HH / C_ND
         Ib = []
         dIb = []
         dg = []
