@@ -147,7 +147,7 @@ class FitND:
         # Quantize conductances
         dg = np.round(np.array(g)*1e-3*1024*self.Vt/self.kappa/self.I_tau/self.s)
         
-        # Quantize reversal 
+        # Quantize reversal potentials
         E_factor = (self.I_voltage / 1024) * self.Res
         scl_v = self.HHModel.scl
         dE = np.round((np.array(E)*scl_v - self.V_ref) / E_factor)
@@ -183,13 +183,7 @@ class FitND:
 
     def get_Vb_bounds(self):
         return self.Vmean+3.5*self.Vstep, self.Vmean-3.5*self.Vstep
-    
-    # This should return digital values
-    def convert_Erev(self, E0_list):
-        scl_v = self.HHModel.scl # note: includes V->mV conversion
-        E_list = [E0*scl_v for E0 in E0_list]
-        return E_list
-    
+        
     def convert_I(self, I0):
         scl_v = self.HHModel.scl # note: includes V->mV conversion
         I = (I0*1e-3)*scl_v/self.s # Note e-3 instead of 1e-6 because of scl_v
