@@ -172,7 +172,7 @@ for i,x in enumerate(X):
         plt.legend()
 
 # Time scaling (important: assumes that HH is already written in SI units)
-# Factor the time scaling into a factor that sets the ND capacitance (C_ND/C_HH)
+# Factor the time scaling into a factor (C_ND/C_HH) that sets the ND capacitance 
 # and a factor (s) that ensures the maximum Ib is given by 1023*I_tau/1024
 C_HH = 1e-6
 s = cmax * C * Vt / (1023*I_tau/1024) * 1000 * C_HH / C_ND
