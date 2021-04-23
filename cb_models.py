@@ -201,18 +201,10 @@ class NeuroDynModel(NeuronalModel):
         self.dErev = dErev
                 
         # Convert digital to physical
-        # self.gna = dg[0]
-        # self.gk = dg[1]
-        # self.gl = dg[2]
+        self.gna,self.gk,self.gl = self.convert_conductance(dg)
         self.Ena = dErev[0]
         self.Ek = dErev[1]
         self.El = dErev[2]
-        
-        self.gna,self.gk,self.gl = self.convert_conductance(dg)
-        # self.gna = self.convert_conductance(dg[0])
-        # self.gk = self.convert_conductance(dg[1])
-        # self.gl = self.convert_conductance(dg[2])
-
         #self.Ena = self.convert_potential(dErev[0])
         #self.Ek = self.convert_potential(dErev[1])
         #self.El = self.convert_potential(dErev[2])
