@@ -178,11 +178,6 @@ class FitND:
     def get_Vb_bounds(self):
         return self.Vmean+3.5*self.Vstep, self.Vmean-3.5*self.Vstep
     
-    # # This should return digital values
-    # def convert_gmax(self, g0_list):
-    #     g_list = [g0*1e-3/self.s for g0 in g0_list]
-    #     return g_list
-    
     # This should return digital values
     def convert_Erev(self, E0_list):
         scl_v = self.HHModel.scl # note: includes V->mV conversion
