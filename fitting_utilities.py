@@ -94,7 +94,7 @@ class FitND:
 
         return c
 
-    def quantize(self,c,g):
+    def quantize(self,c,g,E):
         """
         Returns quantized sigmoid basis functions coefficients after transformation
         of the coefficients (c) into quantizated currents (dIb). 
@@ -146,8 +146,13 @@ class FitND:
 
         # Quantize conductances
         dg = np.round(np.array(g)*1e-3*1024*self.Vt/self.kappa/self.I_tau/self.s)
+        
+        # Quantize reversal 
+        E_factor = (self.I_voltage / 1024) * self.Res
+        scl_v = self.HHModel.scl
+        dE = np.round((np.array(E)*scl_v - self.V_ref) / E_factor)
 
-        return dIb,dg
+        return dIb,dg,dE
         
 
     def fit_gating_variable(self, x):

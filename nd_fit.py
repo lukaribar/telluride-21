@@ -17,10 +17,10 @@ fit = FitND(ND, HH)
 #%% Fit gating variables individually and compute quantized parameters
 c = fit.fit(plot_inf_tau=False)
 g0 = [120,36,0.3]
-dIb,dg = fit.quantize(c,g0)
+E0 = [120,-12,10.6]
+dIb,dg,dE = fit.quantize(c,g0,E0)
 
 #%% Calculate the NeuroDyn parameters and simulate
-E0 = [120,-12,10.6]
 I0 = fit.convert_I(0)
 Iapp = lambda t : I0
 
