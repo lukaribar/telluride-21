@@ -24,8 +24,9 @@ class FitND:
             vrange = np.arange(vstart, vend, 5e-4).T
         self.vrange = vrange
         
-        # Physical constants -> params = kappa,C,C_ND,Vt,I_tau,I_ref,V_ref
-        self.params = self.NDModel.get_pars()
+        # Update dictionary with physical constants from NeuroDyn model
+        params = NDModel.get_pars()
+        self.__dict__.update(params)
         
         # Maximal coefficients
         self.cmax = 0

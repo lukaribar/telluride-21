@@ -247,7 +247,17 @@ class NeuroDynModel(NeuronalModel):
         return dErev * E_factor + self.V_ref
 
     def get_pars(self):
-        return self.kappa, self.C_gate, self.C_m, self.Vt, self.I_tau, self.I_ref,self.V_ref
+        params = {
+            'kappa': self.kappa,
+            'C': self.C_gate,
+            'C_ND': self.C_m,
+            'Vt': self.Vt,
+            'I_tau': self.I_tau,
+            'I_voltage': self.I_voltage,
+            'V_ref': self.V_ref,
+            'Res': self.Res
+        }
+        return params
     
     def get_Vb(self):
          # Bias voltages for the 7-point spline regression
