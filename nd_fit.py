@@ -14,20 +14,23 @@ HH = HHModel(scl=scl_v*1e-3)
 
 fit = FitND(ND, HH)
 
-#%% Fit gating variables individually
-dIb = fit.fit(plot_inf_tau=False)
+#%% Fit gating variables individually and compute quantized parameters
+c = fit.fit(plot_inf_tau=False)
+g0 = [120,36,0.3]
+dIb,dg = fit.quantize(c,g0)
 
 #%% Calculate the NeuroDyn parameters and simulate
-g0 = [120,36,0.3]
 E0 = [120,-12,10.6]
 I0 = fit.convert_I(10)
 Iapp = lambda t : I0
 
-g = fit.convert_gmax(g0)
+# g = fit.convert_gmax(g0)
 E = fit.convert_Erev(E0)
 Vhigh, Vlow = fit.get_Vb_bounds()
 
-ND = NeuroDynModel(g, E, dIb, Vhigh, Vlow)
+ND = NeuroDynModel(dg, E, dIb, Vhigh, Vlow)
+
+#%%
 
 T = 0.01
 trange = (0, T)

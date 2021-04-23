@@ -19,16 +19,18 @@ class FitND:
         # Set default fitting range
         if (vrange == []):
             scl_v = HHModel.scl
-            vstart = HHModel.Ek # add vrefs here?
-            vend   = 80*scl_v # V_ref + HH.Ena -> why this??
+            vstart = HHModel.Ek     # add vrefs here?
+            vend   = 80*scl_v       # V_ref + HH.Ena -> why this??
             vrange = np.arange(vstart, vend, 5e-4).T
         self.vrange = vrange
         
         # Physical constants -> params = kappa,C,C_ND,Vt,I_tau,I_ref,V_ref
         self.params = self.NDModel.get_pars()
         
-        # Maximal coefficient
+        # Maximal coefficients
         self.cmax = 0
+        self.gmax = 0
+        self.scl_t = 0 
         
         # Initial fit to find optimal Vstep and Vmean for spline bias voltages
         self.initial_fit()
@@ -36,9 +38,10 @@ class FitND:
     
     def fit(self, X=[], labels=[], plot_alpha_beta=False, plot_inf_tau=False):
         """
-        Fit a list of gating variables in X
+        Fits a list of gating variables in X.
+        Returns sigmoid basis functions coefficients c prior to transformation
+        into currents.
         """
-        kappa,C,C_ND,Vt,I_tau,I_ref,V_ref = self.params
         Vrange = self.vrange
         c = []
         A = []
@@ -87,36 +90,65 @@ class FitND:
                 plt.plot(Vrange,x.inf(Vrange),label='HH '+label+'_∞')
                 plt.plot(Vrange,inf,label='fit '+label+'_∞')
                 plt.legend()
-        
+
+        return c
+
+    def quantize(self,c,g):
+        """
+        Returns quantized sigmoid basis functions coefficients after transformation
+        of the coefficients (c) into quantizated currents (dIb). 
+        Also returns quantized maximal conductances (dg).
+        To perform quantization, a suitable time scaling has to be found.
+        This is done so as to jointly maximize the resolution of the conductances 
+        and the coefficients.
+        """
+        kappa,C,C_ND,Vt,I_tau,I_ref,V_ref = self.params
+
         # Find maximum coefficient
         cmax = np.array(c).max()
         if (cmax > self.cmax):
             self.cmax = cmax
-        
-        # Find the scaling factors
+
+        # Find the scaling factor that maximizes coefficient resolution
         C_HH = 1e-6
         scl_t = self.cmax * C * Vt / (1023*I_tau/1024) * 1000
-        s = scl_t * C_HH / C_ND
-        self.scl_t = scl_t
-        self.s = s
+        if (scl_t > self.scl_t):
+            self.scl_t = scl_t
+            self.s = scl_t * C_HH / C_ND
+
+        # Find maximum conductance
+        gmax = np.array(g).max()
+        if (gmax > self.gmax):
+            self.gmax = gmax
+
+        # Find the scaling factor that maximizes conductance resolution
+        s = self.gmax * 1e-3 * Vt / kappa / (1023*I_tau/1024) 
+        scl_t = s * C_ND / C_HH
+        if (scl_t > self.scl_t):
+            self.scl_t = scl_t
+            self.s = s
         
         # Recover the (quantized) rate currents from fitted coefficients
         Ib = []
         dIb = []
-        for i,x in enumerate(X):
+        dg = []
+        for i in range(len(c)):
             # Exact (real numbers) current coefficients, before quantization
-            i_a = c[i][0] * C * Vt * 1000 / scl_t 
-            i_b = c[i][1] * C * Vt * 1000 / scl_t
+            i_a = c[i][0] * C * Vt * 1000 / self.scl_t 
+            i_b = c[i][1] * C * Vt * 1000 / self.scl_t
             Ib.append([i_a, i_b])
             # Quantize current coefficients
             di_a = np.round(i_a*1024/I_tau)
             di_b = np.round(i_b*1024/I_tau)
             dIb.append([di_a, di_b])
-        
+
         Ib = np.array(Ib)*1024/I_tau
         dIb = np.array(dIb)
-        
-        return dIb
+
+        # Quantize conductances
+        dg = np.round(np.array(g)*1e-3*1024*Vt/kappa/I_tau/self.s)
+
+        return dIb,dg
         
 
     def fit_gating_variable(self, x):
@@ -148,10 +180,10 @@ class FitND:
     def get_Vb_bounds(self):
         return self.Vmean+3.5*self.Vstep, self.Vmean-3.5*self.Vstep
     
-    # This should return digital values
-    def convert_gmax(self, g0_list):
-        g_list = [g0*1e-3/self.s for g0 in g0_list]
-        return g_list
+    # # This should return digital values
+    # def convert_gmax(self, g0_list):
+    #     g_list = [g0*1e-3/self.s for g0 in g0_list]
+    #     return g_list
     
     # This should return digital values
     def convert_Erev(self, E0_list):

@@ -174,7 +174,7 @@ class NeuroDynModel(NeuronalModel):
     NeuroDyn model
     """
     
-    def __init__(self, dg=[400, 160, 12], dErev=[450, -250, -150], dIb=[], vHigh=0.426, vLow=-0.434):
+    def __init__(self, dg=np.array([400, 160, 12]), dErev=[450, -250, -150], dIb=[], vHigh=0.426, vLow=-0.434):
         self.V_ref = 0              # Unit V , 1 volt
         self.I_tau = 200e-9          # Unit A
         self.I_voltage = 270e-9     # Unit A
@@ -201,16 +201,18 @@ class NeuroDynModel(NeuronalModel):
         self.dErev = dErev
                 
         # Convert digital to physical
-        self.gna = dg[0]
-        self.gk = dg[1]
-        self.gl = dg[2]
+        # self.gna = dg[0]
+        # self.gk = dg[1]
+        # self.gl = dg[2]
         self.Ena = dErev[0]
         self.Ek = dErev[1]
         self.El = dErev[2]
         
-        #self.gna = self.convert_conductance(dg[0])
-        #self.gk = self.convert_conductance(dg[1])
-        #self.gl = self.convert_conductance(dg[2])
+        self.gna,self.gk,self.gl = self.convert_conductance(dg)
+        # self.gna = self.convert_conductance(dg[0])
+        # self.gk = self.convert_conductance(dg[1])
+        # self.gl = self.convert_conductance(dg[2])
+
         #self.Ena = self.convert_potential(dErev[0])
         #self.Ek = self.convert_potential(dErev[1])
         #self.El = self.convert_potential(dErev[2])
