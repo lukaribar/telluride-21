@@ -15,7 +15,7 @@ HH = HHModel(scl=scl_v*1e-3)
 fit = FitND(ND, HH)
 
 #%% Fit gating variables individually and compute quantized parameters
-c = fit.fit(plot_inf_tau=False)
+c = fit.fit()
 g0 = [120,36,0.3]
 E0 = [120,-12,10.6]
 dIb,dg,dE = fit.quantize(c,g0,E0)
