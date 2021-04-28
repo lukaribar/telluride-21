@@ -1,5 +1,7 @@
 """
 Classes and methods for fitting NeuroDyn model
+Important: all fitting is done assuming that the rest potential 
+(or the threhsold potential) of the biophysical model is at 0V.
 """
 from cb_models import HHActivation, HHInactivation
 import numpy as np
@@ -19,11 +21,13 @@ class FitND:
         # Set default fitting range
         if (vrange == []):
             scl_v = HHModel.scl
-            vstart = HHModel.Ek     # add vrefs here?
-            vend   = 80*scl_v       # V_ref + HH.Ena -> why this??
+            vstart = HHModel.Ek     #
+            vend   = 10*scl_v       # V_ref + HH.Ena -> why this??
             vrange = np.arange(vstart, vend, 5e-4).T
         self.vrange = vrange
-        
+        # Important: Vmean should be HH rest potential (or threshold potential)
+        self.Vmean = 0 
+
         # Update dictionary with physical constants from NeuroDyn model
         params = NDModel.get_pars()
         self.__dict__.update(params)
@@ -31,12 +35,14 @@ class FitND:
         # Maximal coefficients
         self.cmax = 0
         self.gmax = 0
-        self.scl_t = 0 
+        self.scl_t = 0
         
         # Initial fit to find optimal Vstep and Vmean for spline bias voltages
-        self.initial_fit()
-                
-    
+        # self.initial_fit()
+        # self.I_voltage = 3.5*self.Vstep/(1.85*1e6)
+        self.I_voltage = 300*1e-9
+        self.Vstep = self.I_voltage*(1.85*1e6)/3.5
+
     def fit(self, X=[], labels=[], plot_alpha_beta=False, plot_inf_tau=False):
         """
         Fits a list of gating variables in X.
@@ -103,8 +109,6 @@ class FitND:
         This is done so as to jointly maximize the resolution of the conductances 
         and the coefficients.
         """
-        #kappa,C,C_ND,Vt,I_tau,_,_ = self.params
-
         # Find maximum coefficient
         cmax = np.array(c).max()
         if (cmax > self.cmax):
@@ -150,10 +154,9 @@ class FitND:
         # Quantize reversal potentials
         E_factor = (self.I_voltage / 1024) * self.Res
         scl_v = self.HHModel.scl
-        dE = np.round((np.array(E)*scl_v - self.V_ref) / E_factor)
+        dE = np.round((np.array(E)*scl_v) / E_factor) # old: - self.V_ref
 
         return dIb,dg,dE
-        
 
     def fit_gating_variable(self, x):
         """
@@ -161,7 +164,6 @@ class FitND:
         IMPORTANT: c_a and c_b returned by this function ignores the factor of 
         1000 due to HH's time units, which are in miliseconds
         """
-        #kappa,_,_,Vt,_,_,_ = self.params
         Vrange = self.vrange
         Vb = self.get_Vb()
         
@@ -182,7 +184,7 @@ class FitND:
         return c_a,c_b,A_alpha,A_beta
 
     def get_Vb_bounds(self):
-        return self.Vmean+3.5*self.Vstep, self.Vmean-3.5*self.Vstep
+        return self.Vmean + 3.5*self.Vstep, self.Vmean - 3.5*self.Vstep
         
     def convert_I(self, I0):
         scl_v = self.HHModel.scl # note: includes V->mV conversion
@@ -205,9 +207,9 @@ class FitND:
         output:
             value of the cost
         """
-        Vmean = Z[-2]
+        # Vmean = Z[-2]
         Vstep = Z[-1]
-        Vb = Vmean + np.arange(start=-3,stop=4,step=1)*Vstep
+        Vb = self.Vmean + np.arange(start=-3,stop=4,step=1)*Vstep
         Vrange = self.vrange
     
         out = 0
@@ -235,8 +237,6 @@ class FitND:
         """
         Initial fit to find optimal bias voltages
         """
-        #_,_,_,_,_,_,V_ref = self.params
-        
         # Fit Hodgkin-Huxley gating variables
         X = [self.HHModel.m,self.HHModel.h,self.HHModel.n]
         
@@ -246,18 +246,18 @@ class FitND:
         for x in X:
             C_a = np.append(C_a,max(x.alpha(self.vrange))*np.ones(7)/7)
             C_b = np.append(C_b,max(x.beta(self.vrange))*np.ones(7)/7)
-        Vmean = self.V_ref
-        Vstep = (self.V_ref+self.HHModel.Ena/1e3 - self.V_ref+self.HHModel.Ek/1e3)/100
-        Z0 = np.concatenate([C_a,C_b,np.array([Vmean,Vstep])])
+        # Vmean = 0
+        Vstep = (self.HHModel.Ena/1e3 - self.HHModel.Ek/1e3)/100 #old: + self.V_ref
+        Z0 = np.concatenate([C_a,C_b,np.array([Vstep])])
         
-        lowerbd = np.append(np.zeros(14*len(X)),np.array([-np.inf,-np.inf]))
-        upperbd = np.append(np.ones(14*len(X))*np.inf,np.array([np.inf,np.inf]))
+        lowerbd = np.append(np.zeros(14*len(X)),np.array([26.5*1e-3]))
+        upperbd = np.append(np.ones(14*len(X))*np.inf,np.array([210*1e-3]))
         bd = Bounds(lowerbd,upperbd)
         
         Z = minimize(lambda Z : self.cost(Z,X), Z0, bounds = bd)
         Z = Z.x
         
-        self.Vmean = Z[-2]
+        # self.Vmean = Z[-2]
         self.Vstep = Z[-1] 
         
         # Save the initial fit

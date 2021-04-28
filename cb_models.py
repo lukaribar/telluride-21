@@ -174,18 +174,16 @@ class NeuroDynModel(NeuronalModel):
     NeuroDyn model
     """
     
-    def __init__(self, dg=np.array([400, 160, 12]), dErev=[450, -250, -150], dIb=[], vHigh=0.426, vLow=-0.434):
-        self.V_ref = 0              # Unit V , 1 volt
-        self.I_tau = 200e-9          # Unit A
-        self.I_voltage = 270e-9     # Unit A
-        self.I_ref = 100e-9          # Unit A
-        #self.I_tau = 33e-9          # Unit A
-        #self.I_voltage = 230e-9     # Unit A
-        #self.I_ref = 15e-9          # Unit A
+    def __init__(self, dg=np.array([400, 160, 12]), dErev=[450, -250, -150], dIb=[], V_ref=0.9, I_voltage = 270e-9, I_tau = 200e-9, I_ref = 100e-9):
+        self.V_ref = V_ref              # Unit V , 1 volt
+        self.I_voltage = I_voltage      # Unit A
+        self.I_tau = I_tau              # Unit A
+        self.I_ref = I_ref              # Unit A
+        # old values: vHigh=0.426, vLow=-0.434
 
         # Relationship to V_ref it is not zero?
-        self.vHigh = self.V_ref + vHigh
-        self.vLow = self.V_ref + vLow
+        self.vHigh = self.V_ref + I_voltage*1.85*1e6 #self.V_ref + vHigh
+        self.vLow = self.V_ref - I_voltage*1.85*1e6 #self.V_ref + vLow
         
         # Membrane & gate capacitances
         self.C_m = 4e-12        # Unit F
@@ -193,8 +191,8 @@ class NeuroDynModel(NeuronalModel):
         
         # Scaling parameters (e.g. parameters that set the voltage scale, time scale..)
         self.kappa = 0.7
-        self.Vt = 26e-3 # Unit Volt
-        self.Res = 1.63e6 # Unit Ohm
+        self.Vt = 26e-3     # Unit Volt
+        self.Res = 1.63e6   # Unit Ohm
         
         # Digital parameters
         self.dg = dg
@@ -266,7 +264,6 @@ class NeuroDynModel(NeuronalModel):
         Vb[0] = self.vLow + (I_factor * 50e-3)
         for i in range(1, 7):
             Vb[i] = Vb[i-1] + (I_factor * 100e-3)
-        
         return Vb
     
     def i_int(self,V, m, h, n):

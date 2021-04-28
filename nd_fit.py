@@ -7,31 +7,33 @@ from cb_models import NeuroDynModel, HHModel
 import matplotlib.pyplot as plt
 
 # Voltage scaling (important: assumes that HH is already written in SI units)
-scl_v = 3
+scl_v = 5
 
 ND = NeuroDynModel()
 HH = HHModel(scl=scl_v*1e-3)
 
 fit = FitND(ND, HH)
+# fit.plot_initial_fit()
 
 #%% Fit gating variables individually and compute quantized parameters
-c = fit.fit()
+c = fit.fit(plot_alpha_beta=True)
 g0 = [120,36,0.3]
 E0 = [120,-12,10.6]
 dIb,dg,dE = fit.quantize(c,g0,E0)
 
 #%% Calculate the NeuroDyn parameters and simulate
-I0 = fit.convert_I(0)
+I0 = fit.convert_I(50)
 Iapp = lambda t : I0
 
-Vhigh, Vlow = fit.get_Vb_bounds()
+# Vhigh, Vlow = fit.get_Vb_bounds()
+V_ref = 0.9
 
-ND = NeuroDynModel(dg, dE, dIb, Vhigh, Vlow)
+ND = NeuroDynModel(dg, dE, dIb, V_ref, fit.I_voltage)
 
 T = 0.01
 trange = (0, T)
 
-sol = ND.simulate(trange,[0,0,0,0],Iapp)
+sol = ND.simulate(trange,[0.9,0,0,0],Iapp)
 
 plt.figure()
 plt.xlabel('t')
