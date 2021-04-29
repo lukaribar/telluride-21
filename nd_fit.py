@@ -22,13 +22,12 @@ E0 = [120,-12,10.6]
 dIb,dg,dE = fit.quantize(c,g0,E0)
 
 #%% Calculate the NeuroDyn parameters and simulate
-I0 = fit.convert_I(50)
+I0 = fit.convert_I(10)
 Iapp = lambda t : I0
 
-# Vhigh, Vlow = fit.get_Vb_bounds()
 V_ref = 0.9
 
-ND = NeuroDynModel(dg, dE, dIb, V_ref, fit.I_voltage)
+ND = NeuroDynModel(dg, dE, dIb, V_ref, fit.I_voltage, fit.I_tau)
 
 T = 0.01
 trange = (0, T)

@@ -41,8 +41,10 @@ class FitND:
         # Initial fit to find optimal Vstep and Vmean for spline bias voltages
         # self.initial_fit()
         # self.I_voltage = 3.5*self.Vstep/(1.85*1e6)
-        self.I_voltage = 300*1e-9
+        self.I_voltage = 300*1e-9 # should be between ~50nA-400nA
         self.Vstep = self.I_voltage*(1.85*1e6)/3.5
+        
+        self.I_tau = 200e-9 # define here instead of reading from ND model
 
     def fit(self, X=[], labels=[], plot_alpha_beta=False, plot_inf_tau=False):
         """
