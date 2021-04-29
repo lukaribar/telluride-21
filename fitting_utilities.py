@@ -150,7 +150,7 @@ class FitND:
 
         Ib = np.array(Ib)*1024/self.I_tau
         dIb = np.array(dIb)
-
+                
         # Quantize conductances
         dg = np.round(np.array(g)*1e-3*1024*self.Vt/self.kappa/self.I_tau/self.s)
         
@@ -158,7 +158,13 @@ class FitND:
         E_factor = (self.I_voltage / 1024) * self.Res
         scl_v = self.HHModel.scl
         dE = np.round((np.array(E)*scl_v) / E_factor) # old: - self.V_ref
-
+        
+        # Check if all digital values are in the range [0, 1023]
+        for d in dIb, dg, dE:
+            if not((abs(d)<=1023).all()):
+                print("The digital value is out of range:")
+                print(d)
+        
         return dIb,dg,dE
 
     def fit_gating_variable(self, x):

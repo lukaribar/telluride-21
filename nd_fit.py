@@ -16,7 +16,7 @@ fit = FitND(ND, HH)
 # fit.plot_initial_fit()
 
 #%% Fit gating variables individually and compute quantized parameters
-c = fit.fit(plot_alpha_beta=True)
+c = fit.fit(plot_alpha_beta=False)
 g0 = [120,36,0.3]
 E0 = [120,-12,10.6]
 dIb,dg,dE = fit.quantize(c,g0,E0)
