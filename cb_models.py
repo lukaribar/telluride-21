@@ -174,7 +174,9 @@ class NeuroDynModel(NeuronalModel):
     NeuroDyn model
     """
     
-    def __init__(self, dg=np.array([400, 160, 12]), dErev=[450, -250, -150], dIb=[], V_ref=0.9, I_voltage = 270e-9, I_tau = 200e-9, I_ref = 100e-9):
+    def __init__(self, dg=np.array([400, 160, 12]), dErev=[450, -250, -150],
+                 dIb=[], V_ref=0.9, I_voltage = 270e-9, I_tau = 200e-9,
+                 I_ref = 100e-9):
         self.V_ref = V_ref              # Unit V , 1 volt
         self.I_voltage = I_voltage      # Unit A
         self.I_tau = I_tau              # Unit A
@@ -250,9 +252,6 @@ class NeuroDynModel(NeuronalModel):
             'C': self.C_gate,
             'C_ND': self.C_m,
             'Vt': self.Vt,
-            'I_tau': self.I_tau,
-            'I_voltage': self.I_voltage,
-            'V_ref': self.V_ref,
             'Res': self.Res
         }
         return params
