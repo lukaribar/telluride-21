@@ -315,15 +315,18 @@ class HHModel(NeuronalModel):
     """    
     # Default to nominal HH Nernst potentials and maximal conductances
     def __init__(self, gna=120, gk=36, gl=0.3, Ena=120, Ek =-12, El =10.6, gates=[],
-                 scl_v=1, scl_t=1):
+                 scl_v=1, scl_t=1, SI_units=False):
         self.gna = gna*scl_t
         self.gk = gk*scl_t
         self.gl = gl*scl_t
         self.Ena = Ena*scl_v
         self.Ek = Ek*scl_v
         self.El = El*scl_v
+        
         self.scl_v = scl_v
         self.scl_t = scl_t
+        self.SI_units = SI_units
+        
         if not gates:
             # Default to nominal HH kinetics
             self.m = HHActivation(25*scl_v, 0.1*scl_t/scl_v, 10*scl_v, 0*scl_v, 4*scl_t, 18*scl_v)
