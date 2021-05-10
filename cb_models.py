@@ -314,19 +314,21 @@ class HHModel(NeuronalModel):
         Hodgkin-Huxley model 
     """    
     # Default to nominal HH Nernst potentials and maximal conductances
-    def __init__(self, gna = 120, gk = 36, gl = 0.3, Ena = 120, Ek = -12, El = 10.6, gates=[],scl=1):
-        self.gna = gna
-        self.gk = gk
-        self.gl = gl
-        self.Ena = Ena*scl
-        self.Ek = Ek*scl
-        self.El = El*scl
-        self.scl = scl
+    def __init__(self, gna=120, gk=36, gl=0.3, Ena=120, Ek =-12, El =10.6, gates=[],
+                 scl_v=1, scl_t=1):
+        self.gna = gna*scl_t
+        self.gk = gk*scl_t
+        self.gl = gl*scl_t
+        self.Ena = Ena*scl_v
+        self.Ek = Ek*scl_v
+        self.El = El*scl_v
+        self.scl_v = scl_v
+        self.scl_t = scl_t
         if not gates:
             # Default to nominal HH kinetics
-            self.m = HHActivation(25*scl, 0.1/scl, 10*scl, 0*scl, 4, 18*scl)
-            self.h = HHInactivation(0*scl, 0.07, 20*scl, 30*scl, 1, 10*scl)
-            self.n = HHActivation(10*scl, 0.01/scl, 10*scl, 0*scl, 0.125, 80*scl)
+            self.m = HHActivation(25*scl_v, 0.1*scl_t/scl_v, 10*scl_v, 0*scl_v, 4*scl_t, 18*scl_v)
+            self.h = HHInactivation(0*scl_v, 0.07*scl_t, 20*scl_v, 30*scl_v, 1*scl_t, 10*scl_v)
+            self.n = HHActivation(10*scl_v, 0.01*scl_t/scl_v, 10*scl_v, 0*scl_v, 0.125*scl_t, 80*scl_v)
         else:
             # We should perhaps scale the gates passed by the user as well
             self.m = gates[0]
@@ -355,7 +357,7 @@ class HHModel(NeuronalModel):
 
     def vfield(self, x, I):
         V, m, h, n = x
-        dV = -self.i_int(V, m, h, n) + I*self.scl
+        dV = -self.i_int(V, m, h, n) + I*self.scl_v*self.scl_t
         dm = self.m.vfield(m,V)
         dh = self.h.vfield(h,V)
         dn = self.n.vfield(n,V)
