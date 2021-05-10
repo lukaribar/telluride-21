@@ -20,9 +20,9 @@ class FitND:
         
         # Set default fitting range
         if (vrange == []):
-            scl_v = HHModel.scl
+            scl_v = HHModel.scl_v
             vstart = HHModel.Ek
-            vend   = 10*scl_v
+            vend   = 80*scl_v
             vrange = np.arange(vstart, vend, 5e-4).T
         self.vrange = vrange
         # Important: Vmean should be HH rest potential (or threshold potential)
@@ -156,7 +156,7 @@ class FitND:
         
         # Quantize reversal potentials
         E_factor = (self.I_voltage / 1024) * self.Res
-        scl_v = self.HHModel.scl
+        scl_v = self.HHModel.scl_v
         dE = np.round((np.array(E)*scl_v) / E_factor) # old: - self.V_ref
         
         # Check if all digital values are in the range [0, 1023]
@@ -196,7 +196,7 @@ class FitND:
         return self.Vmean + 3.5*self.Vstep, self.Vmean - 3.5*self.Vstep
         
     def convert_I(self, I0):
-        scl_v = self.HHModel.scl # note: includes V->mV conversion
+        scl_v = self.HHModel.scl_v # note: includes V->mV conversion
         I = (I0*1e-3)*scl_v/self.s # Note e-3 instead of 1e-6 because of scl_v
         return I
         

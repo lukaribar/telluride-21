@@ -7,10 +7,10 @@ from cb_models import NeuroDynModel, HHModel
 import matplotlib.pyplot as plt
 
 # Voltage scaling (important: assumes that HH is already written in SI units)
-scl_v = 5
+scl_v = 3
 
 ND = NeuroDynModel()
-HH = HHModel(scl=scl_v*1e-3)
+HH = HHModel(scl_v=scl_v*1e-3)
 
 fit = FitND(ND, HH)
 # fit.plot_initial_fit()
