@@ -333,6 +333,7 @@ class HHModel(NeuronalModel):
     """    
     def __init__(self, gna=120, gk=36, gl=0.3, Ena=120, Ek =-12, El =10.6,
                  gates=[], scl_v=1, scl_t=1, SI_units=False):
+        self.C = 1
         self.gna = gna*scl_t
         self.gk = gk*scl_t
         self.gl = gl*scl_t
@@ -346,6 +347,7 @@ class HHModel(NeuronalModel):
         
         # Convert to SI units
         if (SI_units):
+            self.C *= 1e-6
             self.gna *= 1e-3
             self.gk *= 1e-3
             self.gl *= 1e-3
@@ -392,9 +394,9 @@ class HHModel(NeuronalModel):
         V, m, h, n = x
         
         if (self.SI_units):
-            I *= 1e-6
+            I *= 1e-6 # do conversion here or not?
         # IMPORTANT: External input should not be scaled here?
-        dV = -self.i_int(V, m, h, n) + I*self.scl_v*self.scl_t
+        dV = (-self.i_int(V, m, h, n) + I*self.scl_v*self.scl_t)/self.C
         dm = self.m.vfield(m,V)
         dh = self.h.vfield(h,V)
         dn = self.n.vfield(n,V)
