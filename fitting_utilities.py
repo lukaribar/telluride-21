@@ -20,14 +20,12 @@ class FitND:
         
         # Set default fitting range
         if (vrange == []):
-            scl_v = HHModel.scl_v
             vstart = HHModel.Ek
-            vend   = 80*scl_v
+            vend   = HHModel.Ena
             vrange = np.arange(vstart, vend, 5e-4).T
         self.vrange = vrange
-        # Important: Vmean should be HH rest potential (or threshold potential)
-        # OR set Vmean to the middle between Ek and Ena?
-        self.Vmean = 0 
+        # Set Vmean to the threshold potential OR middle of voltage range
+        self.Vmean = (HHModel.Ek+HHModel.Ena)/2
 
         # Update dictionary with physical constants from NeuroDyn model
         params = NDModel.get_pars()
