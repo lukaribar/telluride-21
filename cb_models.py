@@ -393,8 +393,9 @@ class HHModel(NeuronalModel):
     def vfield(self, x, I):
         V, m, h, n = x
         
-        if (self.SI_units):
-            I *= 1e-6 # do conversion here or not?
+        # Do conversion here for external input?
+        #if (self.SI_units):
+        #    I *= 1e-6
         # IMPORTANT: External input should not be scaled here?
         dV = (-self.i_int(V, m, h, n) + I*self.scl_v*self.scl_t)/self.C
         dm = self.m.vfield(m,V)

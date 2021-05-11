@@ -24,8 +24,7 @@ class FitND:
             vend   = HHModel.Ena
             vrange = np.arange(vstart, vend, 5e-4).T
         self.vrange = vrange
-        # Set Vmean to the threshold potential OR middle of voltage range
-        self.Vmean = (HHModel.Ek+HHModel.Ena)/2
+        self.Vmean = (HHModel.Ek+HHModel.Ena)/2 # or resting potential?
 
         # Update dictionary with physical constants from NeuroDyn model
         params = NDModel.get_pars()
