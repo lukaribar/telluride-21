@@ -24,8 +24,8 @@ class FitND:
             vend   = HHModel.Ena
             vrange = np.arange(vstart, vend, 5e-4).T
         self.vrange = vrange
-        self.Vmean = 0 # Vrest
-        #self.Vmean = (HHModel.Ek+HHModel.Ena)/2 # middle of voltage range
+        #self.Vmean = 0 # Vrest
+        self.Vmean = (HHModel.Ek+HHModel.Ena)/2 # middle of voltage range
 
         # Update dictionary with physical constants from NeuroDyn model
         params = NDModel.get_pars()
@@ -39,7 +39,7 @@ class FitND:
         # Initial fit to find optimal Vstep and Vmean for spline bias voltages
         # self.initial_fit()
         # self.I_voltage = 3.5*self.Vstep/(1.85*1e6)
-        self.I_voltage = 200*1e-9 # should be between ~50nA-400nA
+        self.I_voltage = 150*1e-9 # should be between ~50nA-400nA
         self.Vstep = self.I_voltage*(1.85*1e6)/3.5
         self.Vb = self.Vmean + np.arange(start=-3,stop=4,step=1)*self.Vstep
         
@@ -159,9 +159,10 @@ class FitND:
         dg = np.round(np.array(g) / self.s / g_factor)
         
         # Quantize reversal potentials
+        # Is it correct to add Vmean
         E_factor = (self.I_voltage / 1024) * self.Res
         scl_v = self.HHModel.scl_v
-        dE = np.round((np.array(E)*scl_v) / E_factor)
+        dE = np.round((np.array(E)*scl_v - self.Vmean) / E_factor)
         
         # Check if all digital values are in the range [0, 1023]
         for d in dIb, dg, dE:

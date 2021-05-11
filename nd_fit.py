@@ -22,7 +22,7 @@ E0 = [120e-3,-12e-3,10.6e-3]
 dIb,dg,dE = fit.quantize(c,g0,E0)
 
 #%% Calculate the NeuroDyn parameters and simulate
-I0 = fit.convert_I(8)
+I0 = fit.convert_I(0)
 Iapp = lambda t : I0
 
 V_ref = 0.9
