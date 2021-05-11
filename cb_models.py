@@ -194,7 +194,6 @@ class NeuroDynModel(NeuronalModel):
     """
     NeuroDyn model
     """
-    
     def __init__(self, dg=np.array([400, 160, 12]), dErev=[450, -250, -150],
                  dIb=[], V_ref=0.9, I_voltage = 270e-9, I_tau = 200e-9,
                  I_ref = 100e-9):
