@@ -7,7 +7,7 @@ from cb_models import NeuroDynModel, HHModel
 import matplotlib.pyplot as plt
 
 # Voltage scaling (important: assumes that HH is already written in SI units)
-scl_v = 3
+scl_v = 2.5
 
 ND = NeuroDynModel()
 HH = HHModel(scl_v=scl_v, SI_units=True)
@@ -22,8 +22,8 @@ E0 = [120e-3,-12e-3,10.6e-3]
 dIb,dg,dE = fit.quantize(c,g0,E0)
 
 #%% Calculate the NeuroDyn parameters and simulate
-I0 = fit.convert_I(0)
-Iapp = lambda t : I0
+I0 = 8e-6
+Iapp = lambda t : fit.convert_I(I0)
 
 V_ref = 0.9
 

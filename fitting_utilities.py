@@ -151,7 +151,6 @@ class FitND:
             di_b = np.round(i_b*1024/self.I_tau)
             dIb.append([di_a, di_b])
 
-        Ib = np.array(Ib)*1024/self.I_tau
         dIb = np.array(dIb)
                 
         # Quantize conductances
@@ -196,8 +195,8 @@ class FitND:
         return c_a,c_b,A_alpha,A_beta
         
     def convert_I(self, I0):
-        scl_v = self.HHModel.scl_v # note: includes V->mV conversion
-        I = (I0*1e-6)*scl_v/self.s # Note e-3 instead of 1e-6 because of scl_v
+        scl_v = self.HHModel.scl_v
+        I = I0*scl_v/self.s
         return I
         
     def I_rate(self,c,sign,Vb):
