@@ -24,7 +24,8 @@ class FitND:
             vend   = HHModel.Ena
             vrange = np.arange(vstart, vend, 5e-4).T
         self.vrange = vrange
-        self.Vmean = (HHModel.Ek+HHModel.Ena)/2 # or resting potential?
+        self.Vmean = 0 # Vrest
+        #self.Vmean = (HHModel.Ek+HHModel.Ena)/2 # middle of voltage range
 
         # Update dictionary with physical constants from NeuroDyn model
         params = NDModel.get_pars()
@@ -38,8 +39,9 @@ class FitND:
         # Initial fit to find optimal Vstep and Vmean for spline bias voltages
         # self.initial_fit()
         # self.I_voltage = 3.5*self.Vstep/(1.85*1e6)
-        self.I_voltage = 300*1e-9 # should be between ~50nA-400nA
+        self.I_voltage = 200*1e-9 # should be between ~50nA-400nA
         self.Vstep = self.I_voltage*(1.85*1e6)/3.5
+        self.Vb = self.Vmean + np.arange(start=-3,stop=4,step=1)*self.Vstep
         
         self.I_tau = 200e-9 # define here instead of reading from ND model
 
@@ -113,10 +115,13 @@ class FitND:
         cmax = np.array(c).max()
         if (cmax > self.cmax):
             self.cmax = cmax
-
+            
+        Imax = (1023*self.I_tau/1024)
+        
         # Find the scaling factor that maximizes coefficient resolution
         C_HH = 1e-6
-        scl_t = self.cmax * self.C * self.Vt / (1023*self.I_tau/1024) * 1000
+        #scl_t = self.cmax * self.C * self.Vt / Imax
+        scl_t = self.cmax / (Imax / (self.C*self.Vt))
         if (scl_t > self.scl_t):
             self.scl_t = scl_t
 
@@ -126,7 +131,8 @@ class FitND:
             self.gmax = gmax
 
         # Find the scaling factor that maximizes conductance resolution
-        scl_t = self.gmax * 1e-3 * self.Vt / self.kappa / (1023*self.I_tau/1024) * self.C_ND / C_HH
+        #scl_t = self.gmax * self.Vt / self.kappa / (Imax) * self.C_ND / C_HH
+        scl_t = self.gmax / (Imax * self.kappa / self.Vt) * self.C_ND / C_HH
         if (scl_t > self.scl_t):
             self.scl_t = scl_t
 
@@ -137,8 +143,8 @@ class FitND:
         dg = []
         for i in range(len(c)):
             # Exact (real numbers) current coefficients, before quantization
-            i_a = c[i][0] * self.C * self.Vt * 1000 / self.scl_t 
-            i_b = c[i][1] * self.C * self.Vt * 1000 / self.scl_t
+            i_a = c[i][0] * self.C * self.Vt / self.scl_t 
+            i_b = c[i][1] * self.C * self.Vt / self.scl_t
             Ib.append([i_a, i_b])
             # Quantize current coefficients
             di_a = np.round(i_a*1024/self.I_tau)
@@ -149,12 +155,13 @@ class FitND:
         dIb = np.array(dIb)
                 
         # Quantize conductances
-        dg = np.round(np.array(g)*1e-3*1024*self.Vt/self.kappa/self.I_tau/self.s)
+        g_factor = (self.kappa / self.Vt) * (self.I_tau / 1024)
+        dg = np.round(np.array(g) / self.s / g_factor)
         
         # Quantize reversal potentials
         E_factor = (self.I_voltage / 1024) * self.Res
         scl_v = self.HHModel.scl_v
-        dE = np.round((np.array(E)*scl_v) / E_factor) # old: - self.V_ref
+        dE = np.round((np.array(E)*scl_v) / E_factor)
         
         # Check if all digital values are in the range [0, 1023]
         for d in dIb, dg, dE:
@@ -167,11 +174,9 @@ class FitND:
     def fit_gating_variable(self, x):
         """
         Fit a single gating variable using non-negative least squares
-        IMPORTANT: c_a and c_b returned by this function ignores the factor of 
-        1000 due to HH's time units, which are in miliseconds
         """
         Vrange = self.vrange
-        Vb = self.get_Vb()
+        Vb = self.Vb
         
         A_alpha = np.zeros((np.size(Vrange),7))
         A_beta = np.zeros((np.size(Vrange),7))
@@ -188,13 +193,10 @@ class FitND:
         c_b = nnls(A_beta,b_beta)[0]
     
         return c_a,c_b,A_alpha,A_beta
-
-    def get_Vb_bounds(self):
-        return self.Vmean + 3.5*self.Vstep, self.Vmean - 3.5*self.Vstep
         
     def convert_I(self, I0):
         scl_v = self.HHModel.scl_v # note: includes V->mV conversion
-        I = (I0*1e-3)*scl_v/self.s # Note e-3 instead of 1e-6 because of scl_v
+        I = (I0*1e-6)*scl_v/self.s # Note e-3 instead of 1e-6 because of scl_v
         return I
         
     def I_rate(self,c,sign,Vb):
@@ -235,10 +237,7 @@ class FitND:
                 return
             
         return out
-    
-    def get_Vb(self):
-        return self.Vmean + np.arange(start=-3,stop=4,step=1)*self.Vstep
-    
+        
     def initial_fit(self):
         """
         Initial fit to find optimal bias voltages

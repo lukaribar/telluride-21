@@ -10,19 +10,19 @@ import matplotlib.pyplot as plt
 scl_v = 3
 
 ND = NeuroDynModel()
-HH = HHModel(scl_v=scl_v*1e-3)
+HH = HHModel(scl_v=scl_v, SI_units=True)
 
 fit = FitND(ND, HH)
-# fit.plot_initial_fit()
+#fit.plot_initial_fit()
 
 #%% Fit gating variables individually and compute quantized parameters
-c = fit.fit(plot_alpha_beta=False)
-g0 = [120,36,0.3]
-E0 = [120,-12,10.6]
+c = fit.fit(plot_alpha_beta=True)
+g0 = [120e-3,36e-3,0.3e-3]
+E0 = [120e-3,-12e-3,10.6e-3]
 dIb,dg,dE = fit.quantize(c,g0,E0)
 
 #%% Calculate the NeuroDyn parameters and simulate
-I0 = fit.convert_I(10)
+I0 = fit.convert_I(8)
 Iapp = lambda t : I0
 
 V_ref = 0.9
