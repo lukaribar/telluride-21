@@ -393,7 +393,7 @@ class HHModel(NeuronalModel):
         
         if (self.SI_units):
             I *= 1e-6
-        # External input should not be scaled here?
+        # IMPORTANT: External input should not be scaled here?
         dV = -self.i_int(V, m, h, n) + I#*self.scl_v*self.scl_t
         dm = self.m.vfield(m,V)
         dh = self.h.vfield(h,V)
