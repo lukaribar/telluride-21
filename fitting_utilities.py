@@ -99,7 +99,7 @@ class FitND:
                 plt.plot(Vrange,x.inf(Vrange),label='HH '+label+'_∞')
                 plt.plot(Vrange,inf,label='fit '+label+'_∞')
                 plt.legend()
-
+                
         return c
 
     def quantize(self,c,g,E):
@@ -169,7 +169,7 @@ class FitND:
                 print("The digital value is out of range:")
                 print(d)
         
-        return dIb,dg,dE
+        return dIb,dg,dE,scl_t
 
     def fit_gating_variable(self, x):
         """
