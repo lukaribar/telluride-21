@@ -7,7 +7,7 @@ from cb_models import HHActivation, HHInactivation, HHModel
 
 # Create nominal HH model
 HH = HHModel()
-sclHH = HHModel(scl_v = 2, scl_t = 2)
+sclHH = HHModel(scl_v=2, scl_t=2)
 
 I0 = 8
 Iapp = lambda t : I0
