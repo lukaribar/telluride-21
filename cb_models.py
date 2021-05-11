@@ -80,17 +80,28 @@ class NeuroDynInactivation(HHKinetics):
     def beta(self,V):
         return self.betarate.I_rate(V) / (self.C * self.Vt)
 
+
+#self.m = HHActivation(25*scl_v, 0.1*scl_t/scl_v, 10*scl_v, 0*scl_v, 4*scl_t, 18*scl_v)
 class HHActivation(HHKinetics):
     """
     HH-type (alpha-beta) activation gating variable kinetics.
     """
-    def __init__(self, aVh, aA, aK, bVh, bA, bK):
+    def __init__(self, aVh, aA, aK, bVh, bA, bK, SI_units=False):
         self.aVh = aVh
         self.aA = aA
         self.aK = aK
         self.bVh = bVh
         self.bA = bA
         self.bK = bK
+        
+        # Convert paramaters to SI units
+        if (SI_units):
+            self.aVh *= 1e-3
+            self.aA *= 1e6
+            self.aK *= 1e-3
+            self.bVh *= 1e-3
+            self.bA *= 1e3
+            self.bK *= 1e-3
 
     def alpha(self,V):
         A = self.aA
@@ -105,17 +116,27 @@ class HHActivation(HHKinetics):
     def beta(self,V):
         return self.bA * exp((self.bVh - V) / self.bK)
 
+#self.h = HHInactivation(0*scl_v, 0.07*scl_t, 20*scl_v, 30*scl_v, 1*scl_t, 10*scl_v)
 class HHInactivation(HHKinetics):
     """
     HH-type (alpha-beta) inactivation gating variable kinetics. 
     """
-    def __init__(self, aVh, aA, aK, bVh, bA, bK):
+    def __init__(self, aVh, aA, aK, bVh, bA, bK, SI_units=False):
         self.aVh = aVh
         self.aA = aA
         self.aK = aK
         self.bVh = bVh
         self.bA = bA
         self.bK = bK
+        
+        # Convert paramaters to SI units
+        if (SI_units):
+            self.aVh *= 1e-3
+            self.aA *= 1e3
+            self.aK *= 1e-3
+            self.bVh *= 1e-3
+            self.bA *= 1e3
+            self.bK *= 1e-3
 
     def alpha(self,V):
         return self.aA * exp((self.aVh - V)/ self.aK)
@@ -327,11 +348,20 @@ class HHModel(NeuronalModel):
         self.scl_t = scl_t
         self.SI_units = SI_units
         
+        # Convert to SI units
+        if (SI_units):
+            self.gna *= 1e-3
+            self.gk *= 1e-3
+            self.gl *= 1e-3
+            self.Ena *= 1e-3
+            self.Ek *= 1e-3
+            self.El *= 1e-3
+        
         if not gates:
             # Default to nominal HH kinetics
-            self.m = HHActivation(25*scl_v, 0.1*scl_t/scl_v, 10*scl_v, 0*scl_v, 4*scl_t, 18*scl_v)
-            self.h = HHInactivation(0*scl_v, 0.07*scl_t, 20*scl_v, 30*scl_v, 1*scl_t, 10*scl_v)
-            self.n = HHActivation(10*scl_v, 0.01*scl_t/scl_v, 10*scl_v, 0*scl_v, 0.125*scl_t, 80*scl_v)
+            self.m = HHActivation(25*scl_v, 0.1*scl_t/scl_v, 10*scl_v, 0*scl_v, 4*scl_t, 18*scl_v, SI_units)
+            self.h = HHInactivation(0*scl_v, 0.07*scl_t, 20*scl_v, 30*scl_v, 1*scl_t, 10*scl_v, SI_units)
+            self.n = HHActivation(10*scl_v, 0.01*scl_t/scl_v, 10*scl_v, 0*scl_v, 0.125*scl_t, 80*scl_v, SI_units)
         else:
             # We should perhaps scale the gates passed by the user as well
             self.m = gates[0]
@@ -360,7 +390,11 @@ class HHModel(NeuronalModel):
 
     def vfield(self, x, I):
         V, m, h, n = x
-        dV = -self.i_int(V, m, h, n) + I*self.scl_v*self.scl_t
+        
+        if (self.SI_units):
+            I *= 1e-6
+        # External input should not be scaled here?
+        dV = -self.i_int(V, m, h, n) + I#*self.scl_v*self.scl_t
         dm = self.m.vfield(m,V)
         dh = self.h.vfield(h,V)
         dn = self.n.vfield(n,V)
