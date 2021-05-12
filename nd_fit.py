@@ -23,7 +23,7 @@ E0 = [120e-3,-12e-3,10.6e-3]
 dIb,dg,dE,scl_t = fit.quantize(c,g0,E0)
 
 #%% Calculate the NeuroDyn parameters and simulate
-I0 = 0e-6
+I0 = 10e-6
 Iapp = lambda t : fit.convert_I(I0)
 
 #V_ref = 0.9
@@ -34,12 +34,12 @@ ND = NeuroDynModel(dg, dE, dIb, V_ref, fit.I_voltage, fit.I_tau)
 # Plot quantized fits
 vrange = np.arange(HH.Ek, HH.Ena, 5e-4).T
 plt.figure()
-plt.plot(vrange, ND.h.alpha(vrange))
+plt.plot(vrange, ND.h.beta(vrange))
 
 T = 0.01
 trange = (0, T)
 
-sol = ND.simulate(trange,[0.9,0,0,0],Iapp)
+sol = ND.simulate(trange,[0,0,0,0],Iapp)
 
 plt.figure()
 plt.xlabel('t')
