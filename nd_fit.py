@@ -32,7 +32,6 @@ V_ref = 0
 
 ND = NeuroDynModel(dg, dE, dIb, V_ref, fit.I_voltage, fit.I_tau)
 
-vrange = np.arange(HH.Ek, HH.Ena, 5e-4).T
 T = 0.01
 trange = (0, T)
 
