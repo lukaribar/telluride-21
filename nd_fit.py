@@ -27,14 +27,14 @@ I0 = 0e-6
 Iapp = lambda t : fit.convert_I(I0)
 
 #V_ref = 0.9
-V_ref = 0
+V_ref = 0.9
 
 ND = NeuroDynModel(dg, dE, dIb, V_ref, fit.I_voltage, fit.I_tau)
 
 T = 0.01
 trange = (0, T)
 
-sol = ND.simulate(trange,[0,0,0,0],Iapp)
+sol = ND.simulate(trange,[0.7,0,0,0],Iapp)
 
 plt.figure()
 plt.xlabel('t')
