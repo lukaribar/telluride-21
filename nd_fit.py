@@ -21,7 +21,7 @@ c = fit.fit(plot_alpha_beta=True)
 g0 = [120e-3,36e-3,0.3e-3]
 E0 = [120e-3,-12e-3,10.6e-3]
 dIb,dg,dE,scl_t = fit.quantize(c,g0,E0)
-dIb[2][1] = dIb[2][1]*15 # This parameter is too low for some reason!!!
+dIb[2][1] = dIb[2][1]*15 # This parameter is too small for some reason!!!
 
 #%% Calculate the NeuroDyn parameters and simulate
 I0 = 0e-6
