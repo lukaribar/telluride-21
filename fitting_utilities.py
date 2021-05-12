@@ -7,6 +7,7 @@ from cb_models import HHActivation, HHInactivation
 import numpy as np
 from scipy.optimize import nnls, minimize, Bounds
 import matplotlib.pyplot as plt
+from cb_models import NeuroDynModel
 
 class FitND:
     """
@@ -63,26 +64,37 @@ class FitND:
             labels = []*len(X) # put empty labels if none provided
         
         # Fit the variables and plot results
-        for x,label in zip(X,labels):
+        for x in X:
             c_a,c_b,A_alpha,A_beta = self.fit_gating_variable(x)
             c.append([c_a, c_b])
             A.append([A_alpha, A_beta])
-            
-            alpha = np.dot(A_alpha,c_a)
-            beta = np.dot(A_beta,c_b)
+        
+        # Calculate quantized plots
+        g = [120e-3,36e-3,0.3e-3]
+        E = [120e-3,-12e-3,10.6e-3]
+        dIb,dg,dE,scl_t = self.quantize(c, g, E)
+        ND = NeuroDynModel(dg, dE, dIb, self.Vmean, self.I_voltage, self.I_tau)    
+        X_ND = [ND.m, ND.h, ND.n]
+        
+        # PLOT
+        for cj, Aj, x, x_ND, label in zip(c,A,X,X_ND,labels):
+            alpha = np.dot(Aj[0],cj[0])
+            beta = np.dot(Aj[1],cj[1])
             tau = 1/(alpha+beta)
             inf = alpha/(alpha+beta)
-            
+                
             # Plot alpha and beta fits
             if (plot_alpha_beta):
                 plt.figure()
                 plt.plot(Vrange,x.alpha(Vrange),label='HH α_'+label)
                 plt.plot(Vrange,alpha,label='fit α_'+label)
+                plt.plot(Vrange,x_ND.alpha(Vrange)*scl_t,label='quant fit α_'+label)
                 plt.legend()
             
                 plt.figure()
                 plt.plot(Vrange,x.beta(Vrange),label='HH β_'+label)
                 plt.plot(Vrange,beta,label='fit β_'+label)
+                plt.plot(Vrange,x_ND.beta(Vrange)*scl_t,label='quant fit β_'+label)
                 plt.legend()
             
             # Plot xinf and tau fits
@@ -93,15 +105,18 @@ class FitND:
                 plt.figure()
                 plt.plot(Vrange,x.tau(Vrange),label='HH τ_'+label)
                 plt.plot(Vrange,tau,label='fit τ_'+label)
+                plt.plot(Vrange,x_ND.tau(Vrange)/scl_t,label='quant fit τ_'+label)
                 plt.legend()
         
                 plt.figure()
                 plt.plot(Vrange,x.inf(Vrange),label='HH '+label+'_∞')
                 plt.plot(Vrange,inf,label='fit '+label+'_∞')
+                plt.plot(Vrange,x_ND.inf(Vrange),label='quant fit '+label+'_∞')
                 plt.legend()
                 
         return c
-
+    
+    
     def quantize(self,c,g,E):
         """
         Returns quantized sigmoid basis functions coefficients after transformation
