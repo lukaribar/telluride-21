@@ -22,7 +22,7 @@ class FitND:
         # Set default fitting range
         if (vrange == []):
             vstart = HHModel.Ek
-            vend   = HHModel.Ena
+            vend   = HHModel.Ena/2 # this is arbitrary
             vrange = np.arange(vstart, vend, 5e-4).T
         self.vrange = vrange
         #self.Vmean = 0 # Vrest
