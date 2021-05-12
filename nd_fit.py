@@ -5,7 +5,6 @@ Fit NeuroDyn model
 from fitting_utilities import FitND
 from cb_models import NeuroDynModel, HHModel
 import matplotlib.pyplot as plt
-import numpy as np
 
 # Voltage scaling (important: assumes that HH is already written in SI units)
 scl_v = 3
