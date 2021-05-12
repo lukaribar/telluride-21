@@ -80,8 +80,6 @@ class FitND:
         for cj, Aj, x, x_ND, label in zip(c,A,X,X_ND,labels):
             alpha = np.dot(Aj[0],cj[0])
             beta = np.dot(Aj[1],cj[1])
-            tau = 1/(alpha+beta)
-            inf = alpha/(alpha+beta)
                 
             # Plot alpha and beta fits
             if (plot_alpha_beta):
