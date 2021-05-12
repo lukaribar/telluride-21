@@ -9,7 +9,7 @@ from cb_models import HHActivation, HHInactivation, HHModel
 HH = HHModel(SI_units=True)
 sclHH = HHModel(scl_v=2, scl_t=1, SI_units=True)
 
-I0 = 8
+I0 = 8e-6
 Iapp = lambda t : I0
 
 T = 200e-3
