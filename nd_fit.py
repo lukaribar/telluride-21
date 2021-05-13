@@ -25,7 +25,6 @@ dIb[2][1] = dIb[2][1]*15 # This parameter is too small for some reason!!!
 I0 = 0e-6
 Iapp = lambda t : fit.convert_I(I0)
 
-#V_ref = 0.9
 V_ref = 0.9
 
 ND = NeuroDynModel(dg, dE, dIb, V_ref, fit.I_voltage, fit.I_master)
