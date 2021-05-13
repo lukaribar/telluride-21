@@ -288,6 +288,8 @@ class FitND:
         Z = Z.x
         
         # Check here if reversal potentials are covered by the voltage range
+        #
+        #
         
         self.Vmean = Z[-2]
         self.Ivoltage = Z[-1] 
