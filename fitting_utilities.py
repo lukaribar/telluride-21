@@ -44,7 +44,7 @@ class FitND:
         self.Vstep = self.I_voltage*(1.85*1e6)/3.5
         self.Vb = self.Vmean + np.arange(start=-3,stop=4,step=1)*self.Vstep
         
-        self.I_tau = 200e-9 # define here instead of reading from ND model
+        self.I_master = 200e-9 # define here instead of reading from ND model
 
     def fit(self, X=[], labels=[], plot_alpha_beta=False, plot_inf_tau=False):
         """
@@ -73,7 +73,7 @@ class FitND:
         g = [120e-3,36e-3,0.3e-3]
         E = [120e-3,-12e-3,10.6e-3]
         dIb,dg,dE,scl_t = self.quantize(c, g, E)
-        ND = NeuroDynModel(dg, dE, dIb, self.Vmean, self.I_voltage, self.I_tau)    
+        ND = NeuroDynModel(dg, dE, dIb, self.Vmean, self.I_voltage, self.I_master)    
         X_ND = [ND.m, ND.h, ND.n]
         
         # PLOT
@@ -129,7 +129,7 @@ class FitND:
         if (cmax > self.cmax):
             self.cmax = cmax
             
-        Imax = (1023*self.I_tau/1024)
+        Imax = (1023*self.I_master/1024)
         
         # Find the scaling factor that maximizes coefficient resolution
         C_HH = 1e-6
@@ -160,14 +160,14 @@ class FitND:
             i_b = c[i][1] * self.C * self.Vt / self.scl_t
             Ib.append([i_a, i_b])
             # Quantize current coefficients
-            di_a = np.round(i_a*1024/self.I_tau)
-            di_b = np.round(i_b*1024/self.I_tau)
+            di_a = np.round(i_a*1024/self.I_master)
+            di_b = np.round(i_b*1024/self.I_master)
             dIb.append([di_a, di_b])
 
         dIb = np.array(dIb)
                 
         # Quantize conductances
-        g_factor = (self.kappa / self.Vt) * (self.I_tau / 1024)
+        g_factor = (self.kappa / self.Vt) * (self.I_master / 1024)
         dg = np.round(np.array(g) / self.s / g_factor)
         
         # Quantize reversal potentials

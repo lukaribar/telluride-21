@@ -37,6 +37,7 @@ class NeuroDynRate:
     """
     def __init__(self,Ib,kappa,Vt,Vb,sign):
         self.Ib = Ib
+        self.perturbations = np.ones(np.size(Ib))
         self.kappa = kappa
         self.Vt = Vt
         self.Vb = Vb
@@ -44,10 +45,14 @@ class NeuroDynRate:
 
     def I_rate(self,V):
         I=0
+        Ib = self.Ib * self.perturbations
         for i in range(np.size(self.Ib)):
-            I += self.Ib[i] / (1 + np.exp(self.sign * self.kappa * (self.Vb[i] - V)  / self.Vt))
+            I += Ib[i] / (1 + np.exp(self.sign * self.kappa * (self.Vb[i] - V)  / self.Vt))
         return I     
-
+    
+    def perturb(self, sigma=0.15):
+        self.perturbations = (1 + sigma*np.random.randn(7))
+        
 class NeuroDynActivation(HHKinetics):
     """
     NeuroDyn-type activation gating variable kinetics.
@@ -194,11 +199,11 @@ class NeuroDynModel(NeuronalModel):
     NeuroDyn model
     """
     def __init__(self, dg=np.array([400, 160, 12]), dErev=np.array([450, -250, -150]),
-                 dIb=[], V_ref=0.9, I_voltage = 270e-9, I_tau = 200e-9,
+                 dIb=[], V_ref=0.9, I_voltage = 270e-9, I_master = 200e-9,
                  I_ref = 100e-9):
         self.V_ref = V_ref              # Unit V
         self.I_voltage = I_voltage      # Unit A
-        self.I_tau = I_tau              # Unit A
+        self.I_master = I_master              # Unit A
         self.I_ref = I_ref              # Unit A
 
         self.vHigh = self.V_ref + I_voltage*1.85*1e6
@@ -250,12 +255,12 @@ class NeuroDynModel(NeuronalModel):
             
     def convert_current(self, dI):
         # Factor for converting digital to physical I
-        I_factor = self.I_tau / 1024
+        I_factor = self.I_master / 1024
         return dI * I_factor
     
     def convert_conductance(self, dg):
         # Factor for converting digital to physical g
-        g_factor = (self.kappa / self.Vt) * (self.I_tau / 1024)
+        g_factor = (self.kappa / self.Vt) * (self.I_master / 1024)
         return dg * g_factor
         
     def convert_potential(self, dErev):
@@ -311,8 +316,8 @@ class NeuroDynModel(NeuronalModel):
         
         # For each alpha/beta, perturb Itaus
         for x in [self.m, self.h, self.n]:
-            x.alpharate.I_tau = self.I_tau * (1 + sigma*np.random.randn(7))
-            x.betarate.I_tau = self.I_tau * (1 + sigma*np.random.randn(7))
+            x.alpharate.perturb(sigma)
+            x.beta.perturb(sigma)
             
         # Perturb maximal conductances
         self.gna = self.convert_conductance(self.dg[0]*(1 + sigma*np.random.randn()))
@@ -435,7 +440,7 @@ class NeuroDynAMPA(NeuroDynActivation):
     AMPA Synapse in the neurodyn chip.
     Physiological values taken from Ermentrout et al. 2010, p. 161
     """
-    def __init__(self,gsyn=1,Esyn=0,kappa=0.7,C=5e-12,Vt=26e-3,I_tau=33e-9):
+    def __init__(self,gsyn=1,Esyn=0,kappa=0.7,C=5e-12,Vt=26e-3,I_master=33e-9):
         self.gsyn = gsyn
         self.Esyn = Esyn
         # Physiological constants
