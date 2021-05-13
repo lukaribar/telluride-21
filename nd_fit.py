@@ -13,7 +13,6 @@ ND = NeuroDynModel()
 HH = HHModel(scl_v=scl_v, SI_units=True)
 
 fit = FitND(ND, HH)
-#fit.plot_initial_fit()
 
 #%% Fit gating variables individually and compute quantized parameters
 c = fit.fit(plot_alpha_beta=True)

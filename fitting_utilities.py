@@ -15,36 +15,39 @@ class FitND:
     methods for setting the parameters of the NeuroDyn chip to fit a Hodgkin-
     Huxley model
     """
-    def __init__(self, NDModel, HHModel, vrange=[]):
+    def __init__(self, NDModel, HHModel, vrange=[], initial_fit=False):
         self.NDModel = NDModel
         self.HHModel = HHModel
         
         # Set default fitting range
         if (vrange == []):
             vstart = HHModel.Ek
-            vend   = HHModel.Ena/2 # this is arbitrary
+            vend   = HHModel.Ena/2 # this is arbitrary!!!
             vrange = np.arange(vstart, vend, 5e-4).T
         self.vrange = vrange
-        #self.Vmean = 0 # Vrest
-        self.Vmean = (HHModel.Ek+HHModel.Ena)/2 # middle of voltage range
-
+        # Set Vmean to middle of voltage range (or resting potential?)
+        self.Vmean = (HHModel.Ek+HHModel.Ena)/2
+        
         # Update dictionary with physical constants from NeuroDyn model
         params = NDModel.get_pars()
         self.__dict__.update(params)
+        
+        # Set initial currents
+        self.I_voltage = 150*1e-9 # should be between ~50nA-400nA
+        self.I_master = 200e-9 # define here instead of reading from ND model
+        
+        # Initial fit to find optimal Vmean and I_voltage
+        if (initial_fit):
+            self.initial_fit()
+        
+        # Calculate base voltages
+        self.Vstep = self.I_voltage*(1.85*1e6)/3.5
+        self.Vb = self.Vmean + np.arange(start=-3,stop=4,step=1)*self.Vstep
         
         # Maximal coefficients
         self.cmax = 0
         self.gmax = 0
         self.scl_t = 0
-        
-        # Initial fit to find optimal Vstep and Vmean for spline bias voltages
-        # self.initial_fit()
-        # self.I_voltage = 3.5*self.Vstep/(1.85*1e6)
-        self.I_voltage = 150*1e-9 # should be between ~50nA-400nA
-        self.Vstep = self.I_voltage*(1.85*1e6)/3.5
-        self.Vb = self.Vmean + np.arange(start=-3,stop=4,step=1)*self.Vstep
-        
-        self.I_master = 200e-9 # define here instead of reading from ND model
 
     def fit(self, X=[], labels=[], plot_alpha_beta=False, plot_inf_tau=False):
         """
@@ -232,9 +235,10 @@ class FitND:
         output:
             value of the cost
         """
-        # Vmean = Z[-2]
-        Vstep = Z[-1]
-        Vb = self.Vmean + np.arange(start=-3,stop=4,step=1)*Vstep
+        Vmean = Z[-2]
+        I_voltage = Z[-1]
+        Vstep = I_voltage*(1.85*1e6)/3.5
+        Vb = Vmean + np.arange(start=-3,stop=4,step=1)*Vstep
         Vrange = self.vrange
     
         out = 0
@@ -257,7 +261,7 @@ class FitND:
         
     def initial_fit(self):
         """
-        Initial fit to find optimal bias voltages
+        Initial fit to find optimal Vmean and I_voltage
         """
         # Fit Hodgkin-Huxley gating variables
         X = [self.HHModel.m,self.HHModel.h,self.HHModel.n]
@@ -268,70 +272,76 @@ class FitND:
         for x in X:
             C_a = np.append(C_a,max(x.alpha(self.vrange))*np.ones(7)/7)
             C_b = np.append(C_b,max(x.beta(self.vrange))*np.ones(7)/7)
-        # Vmean = 0
-        Vstep = (self.HHModel.Ena/1e3 - self.HHModel.Ek/1e3)/100 #old: + self.V_ref
-        Z0 = np.concatenate([C_a,C_b,np.array([Vstep])])
+        Z0 = np.concatenate([C_a,C_b,np.array([self.Vmean, self.I_voltage])])
         
-        lowerbd = np.append(np.zeros(14*len(X)),np.array([26.5*1e-3]))
-        upperbd = np.append(np.ones(14*len(X))*np.inf,np.array([210*1e-3]))
+        # Bounds for Vmean and Ivoltage
+        vmin = self.HHModel.Ek
+        vmax = self.HHModel.Ena
+        Imin = 50e-9
+        Imax = 400e-9
+        
+        lowerbd = np.append(np.zeros(14*len(X)),np.array([vmin, Imin]))
+        upperbd = np.append(np.ones(14*len(X))*np.inf,np.array([vmax, Imax]))
         bd = Bounds(lowerbd,upperbd)
         
         Z = minimize(lambda Z : self.cost(Z,X), Z0, bounds = bd)
         Z = Z.x
         
-        # self.Vmean = Z[-2]
-        self.Vstep = Z[-1] 
+        # Check here if reversal potentials are covered by the voltage range
+        
+        self.Vmean = Z[-2]
+        self.Ivoltage = Z[-1] 
         
         # Save the initial fit
         self.Z0 = Z
         return
     
     # This should probably go into initial_fit method
-    def plot_initial_fit(self, plot_alpha_beta = True, plot_inf_tau = False):
-        print("Vmean:", self.Vmean)
-        print("Vstep:", self.Vstep)
+    # def plot_initial_fit(self, plot_alpha_beta = True, plot_inf_tau = False):
+    #     print("Vmean:", self.Vmean)
+    #     print("Vstep:", self.Vstep)
         
-        X = [self.HHModel.m,self.HHModel.h,self.HHModel.n]
-        Z = self.Z0
+    #     X = [self.HHModel.m,self.HHModel.h,self.HHModel.n]
+    #     Z = self.Z0
         
-        Vb = self.get_Vb()
-        Vrange = self.vrange
+    #     Vb = self.get_Vb()
+    #     Vrange = self.vrange
         
-        for i,x in enumerate(X):
-            c_a = Z[i*7:(i+1)*7]
-            c_b = Z[len(X)*7+i*7:len(X)*7+(i+1)*7]
-            if isinstance(x,HHActivation):
-                alpha = self.I_rate(c_a,1,Vb)
-                beta = self.I_rate(c_b,-1,Vb)
-            else:
-                alpha = self.I_rate(c_a,-1,Vb)
-                beta = self.I_rate(c_b,1,Vb)
+    #     for i,x in enumerate(X):
+    #         c_a = Z[i*7:(i+1)*7]
+    #         c_b = Z[len(X)*7+i*7:len(X)*7+(i+1)*7]
+    #         if isinstance(x,HHActivation):
+    #             alpha = self.I_rate(c_a,1,Vb)
+    #             beta = self.I_rate(c_b,-1,Vb)
+    #         else:
+    #             alpha = self.I_rate(c_a,-1,Vb)
+    #             beta = self.I_rate(c_b,1,Vb)
         
-            gatelabels = ['m','h','n']
+    #         gatelabels = ['m','h','n']
             
-            # Plot alpha and beta fits
-            if (plot_alpha_beta):
-                plt.figure()
-                plt.plot(Vrange,x.alpha(Vrange),label='HH α_'+gatelabels[i])
-                plt.plot(Vrange,alpha,label='fit α_'+gatelabels[i])
-                plt.legend()
+    #         # Plot alpha and beta fits
+    #         if (plot_alpha_beta):
+    #             plt.figure()
+    #             plt.plot(Vrange,x.alpha(Vrange),label='HH α_'+gatelabels[i])
+    #             plt.plot(Vrange,alpha,label='fit α_'+gatelabels[i])
+    #             plt.legend()
             
-                plt.figure()
-                plt.plot(Vrange,x.beta(Vrange),label='HH β_'+gatelabels[i])
-                plt.plot(Vrange,beta,label='fit β_'+gatelabels[i])
-                plt.legend()
+    #             plt.figure()
+    #             plt.plot(Vrange,x.beta(Vrange),label='HH β_'+gatelabels[i])
+    #             plt.plot(Vrange,beta,label='fit β_'+gatelabels[i])
+    #             plt.legend()
             
-            # Plot xinf and tau fits
-            if (plot_inf_tau):
-                tau = 1/(alpha+beta)
-                inf = alpha/(alpha+beta)
+    #         # Plot xinf and tau fits
+    #         if (plot_inf_tau):
+    #             tau = 1/(alpha+beta)
+    #             inf = alpha/(alpha+beta)
     
-                plt.figure()
-                plt.plot(Vrange,x.tau(Vrange),label='HH τ_'+gatelabels[i])
-                plt.plot(Vrange,tau,label='fit τ_'+gatelabels[i])
-                plt.legend()
+    #             plt.figure()
+    #             plt.plot(Vrange,x.tau(Vrange),label='HH τ_'+gatelabels[i])
+    #             plt.plot(Vrange,tau,label='fit τ_'+gatelabels[i])
+    #             plt.legend()
         
-                plt.figure()
-                plt.plot(Vrange,x.inf(Vrange),label='HH '+gatelabels[i]+'_∞')
-                plt.plot(Vrange,inf,label='fit '+gatelabels[i]+'_∞')
-                plt.legend()
+    #             plt.figure()
+    #             plt.plot(Vrange,x.inf(Vrange),label='HH '+gatelabels[i]+'_∞')
+    #             plt.plot(Vrange,inf,label='fit '+gatelabels[i]+'_∞')
+    #             plt.legend()
