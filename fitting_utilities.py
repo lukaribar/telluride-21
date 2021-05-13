@@ -84,15 +84,17 @@ class FitND:
             # Plot alpha and beta fits
             if (plot_alpha_beta):
                 plt.figure()
-                plt.plot(Vrange,x.alpha(Vrange),label='HH α_'+label)
-                plt.plot(Vrange,alpha,label='fit α_'+label)
-                plt.plot(Vrange,x_ND.alpha(Vrange)*scl_t,label='quant fit α_'+label)
+                plt.title('α_'+label)
+                plt.plot(Vrange,x.alpha(Vrange),label='Hodgkin-Huxley')
+                plt.plot(Vrange,alpha,label='Fit')
+                plt.plot(Vrange,x_ND.alpha(Vrange)*scl_t,label='Fit quantized')
                 plt.legend()
             
                 plt.figure()
-                plt.plot(Vrange,x.beta(Vrange),label='HH β_'+label)
-                plt.plot(Vrange,beta,label='fit β_'+label)
-                plt.plot(Vrange,x_ND.beta(Vrange)*scl_t,label='quant fit β_'+label)
+                plt.title('β_'+label)
+                plt.plot(Vrange,x.beta(Vrange),label='Hodgkin-Huxley')
+                plt.plot(Vrange,beta,label='Fit')
+                plt.plot(Vrange,x_ND.beta(Vrange)*scl_t,label='Fit quantized')
                 plt.legend()
             
             # Plot xinf and tau fits
@@ -101,15 +103,17 @@ class FitND:
                 inf = alpha/(alpha+beta)
     
                 plt.figure()
-                plt.plot(Vrange,x.tau(Vrange),label='HH τ_'+label)
-                plt.plot(Vrange,tau,label='fit τ_'+label)
-                plt.plot(Vrange,x_ND.tau(Vrange)/scl_t,label='quant fit τ_'+label)
+                plt.title('τ_'+label)
+                plt.plot(Vrange,x.tau(Vrange),label='Hodgkin-Huxley')
+                plt.plot(Vrange,tau,label='Fit')
+                plt.plot(Vrange,x_ND.tau(Vrange)/scl_t,label='Fit quantized')
                 plt.legend()
         
                 plt.figure()
-                plt.plot(Vrange,x.inf(Vrange),label='HH '+label+'_∞')
-                plt.plot(Vrange,inf,label='fit '+label+'_∞')
-                plt.plot(Vrange,x_ND.inf(Vrange),label='quant fit '+label+'_∞')
+                plt.title(label+'_∞')
+                plt.plot(Vrange,x.inf(Vrange),label='Hodgkin-Huxley')
+                plt.plot(Vrange,inf,label='Fit')
+                plt.plot(Vrange,x_ND.inf(Vrange),label='Fit quantized')
                 plt.legend()
                 
         return c
