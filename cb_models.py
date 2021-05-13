@@ -314,7 +314,7 @@ class NeuroDynModel(NeuronalModel):
         self.q = 1 + 0.1*np.random.randn()
         self.r = 4 + 0.2*np.random.randn()
         
-        # For each alpha/beta, perturb Itaus
+        # For each alpha/beta, perturb sigmoid base currents
         for x in [self.m, self.h, self.n]:
             x.alpharate.perturb(sigma)
             x.betarate.perturb(sigma)
