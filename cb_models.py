@@ -317,7 +317,7 @@ class NeuroDynModel(NeuronalModel):
         # For each alpha/beta, perturb Itaus
         for x in [self.m, self.h, self.n]:
             x.alpharate.perturb(sigma)
-            x.beta.perturb(sigma)
+            x.betarate.perturb(sigma)
             
         # Perturb maximal conductances
         self.gna = self.convert_conductance(self.dg[0]*(1 + sigma*np.random.randn()))
