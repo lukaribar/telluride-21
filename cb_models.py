@@ -1,6 +1,5 @@
-from abc import ABC, abstractmethod  # for abstract classes
+from abc import ABC, abstractmethod
 from scipy.integrate import solve_ivp
-from scipy.optimize import nnls
 import numpy as np
 from numpy import exp
 from copy import deepcopy
@@ -38,69 +37,47 @@ class NeuroDynRate:
     """
     def __init__(self,Ib,kappa,Vt,Vb,sign):
         self.Ib = Ib
-        self.kappa = kappa  #global?
-        self.Vt = Vt        #global?
-        self.Vb = Vb        #global?
+        self.perturbations = np.ones(np.size(Ib))
+        self.kappa = kappa
+        self.Vt = Vt
+        self.Vb = Vb
         self.sign = sign
 
     def I_rate(self,V):
         I=0
+        Ib = self.Ib * self.perturbations
         for i in range(np.size(self.Ib)):
-            I += self.Ib[i] / (1 + np.exp(self.sign * self.kappa * (self.Vb[i] - V)  / self.Vt))
+            I += Ib[i] / (1 + np.exp(self.sign * self.kappa * (self.Vb[i] - V)  / self.Vt))
         return I     
-
+    
+    def perturb(self, sigma=0.15):
+        self.perturbations = (1 + sigma*np.random.randn(7))
+        
 class NeuroDynActivation(HHKinetics):
     """
     NeuroDyn-type activation gating variable kinetics.
-    There are two ways of initializing the object:
-        1)  By passing an object of HHKinetics type whose alpha/beta
-            functions are used to find the values of dIb
-        2)  By passing dIb manually
     """
-    def __init__(self,*args):
-        if isinstance(args[0],HHKinetics):
-            x,kappa,C,Vt,Vb = args
-            Ib_alpha,Ib_beta = self.fit(x,kappa,C,Vt,Vb)
-        else:
-            Ib,kappa,C,Vt,Vb  = args
-            Ib_alpha = Ib[0]
-            Ib_beta = Ib[1]
-        
+    def __init__(self,Ib,kappa,C,Vt,Vb):
         self.C = C
         self.Vt = Vt    
-        self.alpharate = NeuroDynRate(Ib_alpha,kappa,Vt,Vb,1)
-        self.betarate = NeuroDynRate(Ib_beta,kappa,Vt,Vb,-1) 
+        self.alpharate = NeuroDynRate(Ib[0],kappa,Vt,Vb,1)
+        self.betarate = NeuroDynRate(Ib[1],kappa,Vt,Vb,-1) 
     
     def alpha(self,V):
         return self.alpharate.I_rate(V) / (self.C * self.Vt)
 
     def beta(self,V):
         return self.betarate.I_rate(V) / (self.C * self.Vt)
-
-    def fit(self,x,kappa,C,Vt,Vb):
-        V = np.arange(start=-0.015, stop=0.15, step=5e-4).T
-        A_alpha = np.zeros((np.size(V),7))
-        A_beta = np.zeros((np.size(V),7))
-        b_alpha = x.alpha(V) / np.amax(x.alpha(V)) 
-        b_beta = x.beta(V) / np.amax(x.beta(V))
-        for i in range(7):
-           A_alpha[:,i] = 1 / (1 + np.exp(1 * kappa * (Vb[i] - V)  / Vt))
-           A_beta[:,i] = 1 / (1 + np.exp(-1 * kappa * (Vb[i] - V)  / Vt))
-        Ib_alpha = nnls(A_alpha,b_alpha)[0]
-        Ib_beta = nnls(A_beta,b_beta)[0]
-
-        return Ib_alpha,Ib_beta
-        #quantize and adjust for Itau
     
 class NeuroDynInactivation(HHKinetics):
     """
-    NeuroDyn-type activation gating variable kinetics.
+    NeuroDyn-type inactivation gating variable kinetics.
     """
-    def __init__(self,dIb,kappa,C,Vt,Vb):
+    def __init__(self,Ib,kappa,C,Vt,Vb):
         self.C = C
         self.Vt = Vt
-        self.alpharate = NeuroDynRate(dIb[0],kappa,Vt,Vb,-1) 
-        self.betarate = NeuroDynRate(dIb[1],kappa,Vt,Vb,1) 
+        self.alpharate = NeuroDynRate(Ib[0],kappa,Vt,Vb,-1) 
+        self.betarate = NeuroDynRate(Ib[1],kappa,Vt,Vb,1) 
     
     def alpha(self,V):
         return self.alpharate.I_rate(V) / (self.C * self.Vt)
@@ -108,17 +85,27 @@ class NeuroDynInactivation(HHKinetics):
     def beta(self,V):
         return self.betarate.I_rate(V) / (self.C * self.Vt)
 
+#self.m = HHActivation(25*scl_v, 0.1*scl_t/scl_v, 10*scl_v, 0*scl_v, 4*scl_t, 18*scl_v)
 class HHActivation(HHKinetics):
     """
     HH-type (alpha-beta) activation gating variable kinetics.
     """
-    def __init__(self, aVh, aA, aK, bVh, bA, bK):
+    def __init__(self, aVh, aA, aK, bVh, bA, bK, SI_units=False):
         self.aVh = aVh
         self.aA = aA
         self.aK = aK
         self.bVh = bVh
         self.bA = bA
         self.bK = bK
+        
+        # Convert paramaters to SI units
+        if (SI_units):
+            self.aVh *= 1e-3
+            self.aA *= 1e6
+            self.aK *= 1e-3
+            self.bVh *= 1e-3
+            self.bA *= 1e3
+            self.bK *= 1e-3
 
     def alpha(self,V):
         A = self.aA
@@ -133,17 +120,27 @@ class HHActivation(HHKinetics):
     def beta(self,V):
         return self.bA * exp((self.bVh - V) / self.bK)
 
+#self.h = HHInactivation(0*scl_v, 0.07*scl_t, 20*scl_v, 30*scl_v, 1*scl_t, 10*scl_v)
 class HHInactivation(HHKinetics):
     """
     HH-type (alpha-beta) inactivation gating variable kinetics. 
     """
-    def __init__(self, aVh, aA, aK, bVh, bA, bK):
+    def __init__(self, aVh, aA, aK, bVh, bA, bK, SI_units=False):
         self.aVh = aVh
         self.aA = aA
         self.aK = aK
         self.bVh = bVh
         self.bA = bA
         self.bK = bK
+        
+        # Convert paramaters to SI units
+        if (SI_units):
+            self.aVh *= 1e-3
+            self.aA *= 1e3
+            self.aK *= 1e-3
+            self.bVh *= 1e-3
+            self.bA *= 1e3
+            self.bK *= 1e-3
 
     def alpha(self,V):
         return self.aA * exp((self.aVh - V)/ self.aK)
@@ -201,16 +198,16 @@ class NeuroDynModel(NeuronalModel):
     """
     NeuroDyn model
     """
-    
-    def __init__(self, dg=[400, 160, 12], dErev=[450, -250, -150], Ib=[], vHigh=0.426, vLow=-0.434):
-        self.V_ref = 0              # Unit V , 1 volt
-        self.I_tau = 33e-9          # Unit A
-        self.I_voltage = 230e-9     # Unit A
-        self.I_ref = 15e-9          # Unit A
+    def __init__(self, dg=np.array([400, 160, 12]), dErev=np.array([450, -250, -150]),
+                 dIb=[], V_ref=0.9, I_voltage = 270e-9, I_master = 200e-9,
+                 I_ref = 100e-9):
+        self.V_ref = V_ref              # Unit V
+        self.I_voltage = I_voltage      # Unit A
+        self.I_master = I_master              # Unit A
+        self.I_ref = I_ref              # Unit A
 
-        # Relationship to V_ref it is not zero?
-        self.vHigh = self.V_ref + vHigh
-        self.vLow = self.V_ref + vLow
+        self.vHigh = self.V_ref + I_voltage*1.85*1e6
+        self.vLow = self.V_ref - I_voltage*1.85*1e6
         
         # Membrane & gate capacitances
         self.C_m = 4e-12        # Unit F
@@ -218,57 +215,52 @@ class NeuroDynModel(NeuronalModel):
         
         # Scaling parameters (e.g. parameters that set the voltage scale, time scale..)
         self.kappa = 0.7
-        self.Vt = 26e-3 # Unit Volt
-        self.Res = 1.63e6 # Unit Ohm
+        self.Vt = 26e-3     # Unit Volt
+        self.Res = 1.63e6   # Unit Ohm
         
         # Digital parameters
         self.dg = dg
         self.dErev = dErev
                 
         # Convert digital to physical
-        self.gna = dg[0]
-        self.gk = dg[1]
-        self.gl = dg[2]
-        self.Ena = dErev[0]
-        self.Ek = dErev[1]
-        self.El = dErev[2]
-        
-        #self.gna = self.convert_conductance(dg[0])
-        #self.gk = self.convert_conductance(dg[1])
-        #self.gl = self.convert_conductance(dg[2])
-        #self.Ena = self.convert_potential(dErev[0])
-        #self.Ek = self.convert_potential(dErev[1])
-        #self.El = self.convert_potential(dErev[2])
+        self.gna,self.gk,self.gl = self.convert_conductance(dg)
+        self.Ena,self.Ek,self.El = self.convert_potential(dErev)
         
         # Gating variable coefficients
         self.p = 3
         self.q = 1
         self.r = 4
         
-        Vb = self.get_default_Vb()
-        if (Ib == []):
-            # Default to nominal NeuroDyn activation parameters
+        Vb = self.get_Vb()
+        self.Vb = Vb
+        
+        # Default to nominal NeuroDyn activation parameters
+        if (dIb == []):
             dIb_m = np.array([[0, 0, 120, 400, 800, 1023, 1023],
                      [1023, 1023, 1023, 1023, 0, 0, 0]])
             dIb_h = np.array([[237, 5, 7, 6, 0, 0, 0],
                     [0, 0, 0, 0, 41, 25, 8]])
             dIb_n = np.array([[0, 0, 0, 0, 80, 40, 250],
                     [4, 0, 0, 10, 0, 0, 4]])
-            Ib_m = dIb_m * self.I_tau / 1024
-            Ib_h = dIb_h * self.I_tau / 1024
-            Ib_n = dIb_n * self.I_tau / 1024
-        else:
-            Ib_m = Ib[0]
-            Ib_h = Ib[1]
-            Ib_n = Ib[2]
-            
+            dIb = [dIb_m, dIb_h, dIb_n]
+        self.dIb = dIb            
+        
+        Ib_m = self.convert_current(dIb[0])
+        Ib_h = self.convert_current(dIb[1])
+        Ib_n = self.convert_current(dIb[2])
+        
         self.m = NeuroDynActivation(Ib_m,self.kappa,self.C_gate,self.Vt,Vb)
         self.h = NeuroDynInactivation(Ib_h,self.kappa,self.C_gate,self.Vt,Vb)
         self.n = NeuroDynActivation(Ib_n,self.kappa,self.C_gate,self.Vt,Vb)
             
+    def convert_current(self, dI):
+        # Factor for converting digital to physical I
+        I_factor = self.I_master / 1024
+        return dI * I_factor
+    
     def convert_conductance(self, dg):
         # Factor for converting digital to physical g
-        g_factor = (self.kappa / self.Vt) * (self.I_tau / 1024)
+        g_factor = (self.kappa / self.Vt) * (self.I_master / 1024)
         return dg * g_factor
         
     def convert_potential(self, dErev):
@@ -276,21 +268,28 @@ class NeuroDynModel(NeuronalModel):
         E_factor = (self.I_voltage / 1024) * self.Res
         return dErev * E_factor + self.V_ref
 
-    def get_default_rate_pars(self):
-        return self.kappa, self.C_gate, self.C_m, self.Vt, self.I_tau, self.I_ref,self.V_ref
+    def get_pars(self):
+        params = {
+            'kappa': self.kappa,
+            'C': self.C_gate,
+            'C_ND': self.C_m,
+            'Vt': self.Vt,
+            'Res': self.Res
+        }
+        return params
     
-    def get_default_Vb(self):
-         # Bias voltages for the 7-point spline regression
+    def get_Vb(self):
+        # Bias voltages for the 7-point spline regression
         Vb = np.zeros(7) # Define the 7 bias voltages
         I_factor = (self.vHigh - self.vLow) / 700e-3
         Vb[0] = self.vLow + (I_factor * 50e-3)
         for i in range(1, 7):
             Vb[i] = Vb[i-1] + (I_factor * 100e-3)
-        
         return Vb
     
     def i_int(self,V, m, h, n):
-        return self.gna*(m**self.p)*(h**self.q)*(V - self.Ena) + self.gk*(n**self.r)*(V - self.Ek) + self.gl*(V - self.El)
+        return (self.gna*(m**self.p)*(h**self.q)*(V - self.Ena) +
+                self.gk*(n**self.r)*(V - self.Ek) + self.gl*(V - self.El))
 
     def iNa_ss(self,V):
         return self.gna*(self.m.inf(V)**self.p)*(self.h.inf(V)**self.q)*(V - self.Ena)
@@ -315,10 +314,10 @@ class NeuroDynModel(NeuronalModel):
         self.q = 1 + 0.1*np.random.randn()
         self.r = 4 + 0.2*np.random.randn()
         
-        # For each alpha/beta, perturb Itaus
+        # For each alpha/beta, perturb sigmoid base currents
         for x in [self.m, self.h, self.n]:
-            x.alpharate.I_tau = self.I_tau * (1 + sigma*np.random.randn(7))
-            x.betarate.I_tau = self.I_tau * (1 + sigma*np.random.randn(7))
+            x.alpharate.perturb(sigma)
+            x.betarate.perturb(sigma)
             
         # Perturb maximal conductances
         self.gna = self.convert_conductance(self.dg[0]*(1 + sigma*np.random.randn()))
@@ -337,20 +336,38 @@ class HHModel(NeuronalModel):
     """
         Hodgkin-Huxley model 
     """    
-    # Default to nominal HH Nernst potentials and maximal conductances
-    def __init__(self, gna = 120, gk = 36, gl = 0.3, Ena = 120, Ek = -12, El = 10.6, gates=[],scl=1):
-        self.gna = gna
-        self.gk = gk
-        self.gl = gl
-        self.Ena = Ena*scl
-        self.Ek = Ek*scl
-        self.El = El*scl
-        self.scl = scl
+    def __init__(self, gna=120, gk=36, gl=0.3, Ena=120, Ek =-12, El =10.6,
+                 gates=[], scl_v=1, scl_t=1, SI_units=False):
+        self.C = 1
+        self.gna = gna*scl_t
+        self.gk = gk*scl_t
+        self.gl = gl*scl_t
+        self.Ena = Ena*scl_v
+        self.Ek = Ek*scl_v
+        self.El = El*scl_v
+        
+        self.scl_v = scl_v
+        self.scl_t = scl_t
+        self.SI_units = SI_units
+        
+        # Convert to SI units
+        if (SI_units):
+            self.C *= 1e-6
+            self.gna *= 1e-3
+            self.gk *= 1e-3
+            self.gl *= 1e-3
+            self.Ena *= 1e-3
+            self.Ek *= 1e-3
+            self.El *= 1e-3
+        
         if not gates:
             # Default to nominal HH kinetics
-            self.m = HHActivation(25*scl, 0.1/scl, 10*scl, 0*scl, 4, 18*scl)
-            self.h = HHInactivation(0*scl, 0.07, 20*scl, 30*scl, 1, 10*scl)
-            self.n = HHActivation(10*scl, 0.01/scl, 10*scl, 0*scl, 0.125, 80*scl)
+            self.m = HHActivation(25*scl_v, 0.1*scl_t/scl_v, 10*scl_v, 0*scl_v,
+                                  4*scl_t, 18*scl_v, SI_units)
+            self.h = HHInactivation(0*scl_v, 0.07*scl_t, 20*scl_v, 30*scl_v,
+                                    1*scl_t, 10*scl_v, SI_units)
+            self.n = HHActivation(10*scl_v, 0.01*scl_t/scl_v, 10*scl_v,
+                                  0*scl_v, 0.125*scl_t, 80*scl_v, SI_units)
         else:
             # We should perhaps scale the gates passed by the user as well
             self.m = gates[0]
@@ -362,11 +379,12 @@ class HHModel(NeuronalModel):
         self.q = 1
         self.r = 4
         
-        # Save the nominal object (need to do deep copy here?)
+        # Save the nominal parameters
         self.nominal = deepcopy(self)
 
     def i_int(self,V, m, h, n):
-        return self.gna*(m**self.p)*(h**self.q)*(V - self.Ena) + self.gk*(n**self.r)*(V - self.Ek) + self.gl*(V - self.El)
+        return (self.gna*(m**self.p)*(h**self.q)*(V - self.Ena) +
+                self.gk*(n**self.r)*(V - self.Ek) + self.gl*(V - self.El))
 
     def iNa_ss(self,V):
         return self.gna*(self.m.inf(V)**self.p)*(self.h.inf(V)**self.q)*(V - self.Ena)
@@ -379,7 +397,12 @@ class HHModel(NeuronalModel):
 
     def vfield(self, x, I):
         V, m, h, n = x
-        dV = -self.i_int(V, m, h, n) + I*self.scl
+        
+        # Do conversion here for external input?
+        #if (self.SI_units):
+        #    I *= 1e-6
+        # IMPORTANT: External input should not be scaled here?
+        dV = (-self.i_int(V, m, h, n) + I*self.scl_v*self.scl_t)/self.C
         dm = self.m.vfield(m,V)
         dh = self.h.vfield(h,V)
         dn = self.n.vfield(n,V)
@@ -417,7 +440,7 @@ class NeuroDynAMPA(NeuroDynActivation):
     AMPA Synapse in the neurodyn chip.
     Physiological values taken from Ermentrout et al. 2010, p. 161
     """
-    def __init__(self,gsyn=1,Esyn=0,kappa=0.7,C=5e-12,Vt=26e-3,I_tau=33e-9):
+    def __init__(self,gsyn=1,Esyn=0,kappa=0.7,C=5e-12,Vt=26e-3,I_master=33e-9):
         self.gsyn = gsyn
         self.Esyn = Esyn
         # Physiological constants
@@ -427,7 +450,7 @@ class NeuroDynAMPA(NeuroDynActivation):
         Vb = [V_T,-10,0,0,0,0,0] 
         # IMPORTANT: WE CAN'T REALLY USE THE SIGMOIDS THIS WAY.
         # WE NEED TO FIT THE 7 SIGMOIDS TO THE AMPA SIGMOID
-        super().__init__(dIb,kappa,C,Kp*kappa,Vb,I_tau)  
+        super().__init__(dIb,kappa,C,Kp*kappa,Vb) 
 
 class AMPA(HHKinetics):
     """
@@ -500,7 +523,7 @@ class NeuronalNetwork:
             i_gap = 0
             
             Vpost = x[i*4]
-            for j, neuron_j in enumerate(self.neurons):
+            for j, _ in enumerate(self.neurons):
                 Vpre = x[j*4]
                 if (self.synAdj[i][j]):
                     for syn in self.syns[i][j]:
