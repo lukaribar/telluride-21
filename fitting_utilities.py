@@ -140,7 +140,6 @@ class FitND:
         
         # Find the scaling factor that maximizes coefficient resolution
         C_HH = 1e-6
-        #scl_t = self.cmax * self.C * self.Vt / Imax
         scl_t = self.cmax / (Imax / (self.C*self.Vt))
         if (scl_t > self.scl_t):
             self.scl_t = scl_t
@@ -151,7 +150,6 @@ class FitND:
             self.gmax = gmax
 
         # Find the scaling factor that maximizes conductance resolution
-        #scl_t = self.gmax * self.Vt / self.kappa / (Imax) * self.C_ND / C_HH
         scl_t = self.gmax / (Imax * self.kappa / self.Vt) * self.C_ND / C_HH
         if (scl_t > self.scl_t):
             self.scl_t = scl_t
@@ -178,7 +176,6 @@ class FitND:
         dg = np.round(np.array(g) / self.s / g_factor)
         
         # Quantize reversal potentials
-        # Is it correct to add Vmean
         E_factor = (self.I_voltage / 1024) * self.Res
         scl_v = self.HHModel.scl_v
         dE = np.round((np.array(E)*scl_v - self.Vmean) / E_factor)
@@ -220,7 +217,6 @@ class FitND:
         return I
         
     def I_rate(self,c,sign,Vb):
-        #kappa,_,_,Vt,_,_,_ = self.params
         I=0
         for i in range(len(Vb)):
             I += c[i] / (1 + np.exp(sign * self.kappa * (Vb[i] - self.vrange)  / self.Vt))
