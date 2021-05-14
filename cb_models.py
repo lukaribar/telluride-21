@@ -203,7 +203,7 @@ class NeuroDynModel(NeuronalModel):
                  I_ref = 100e-9):
         self.V_ref = V_ref              # Unit V
         self.I_voltage = I_voltage      # Unit A
-        self.I_master = I_master              # Unit A
+        self.I_master = I_master        # Unit A
         self.I_ref = I_ref              # Unit A
 
         self.vHigh = self.V_ref + I_voltage*1.85*1e6
@@ -215,7 +215,8 @@ class NeuroDynModel(NeuronalModel):
         
         # Scaling parameters (e.g. parameters that set the voltage scale, time scale..)
         self.kappa = 0.7
-        self.Vt = 26e-3     # Unit Volt
+        self.kappa_lin = 0.7 # linearized slope of conductance amplifiers
+        self.Vt = 26e-3     # Unit V
         self.Res = 1.63e6   # Unit Ohm
         
         # Digital parameters
@@ -260,7 +261,7 @@ class NeuroDynModel(NeuronalModel):
     
     def convert_conductance(self, dg):
         # Factor for converting digital to physical g
-        g_factor = (self.kappa / self.Vt) * (self.I_master / 1024)
+        g_factor = (self.kappa_lin / self.Vt) * (self.I_master / 1024)
         return dg * g_factor
         
     def convert_potential(self, dErev):
@@ -287,18 +288,30 @@ class NeuroDynModel(NeuronalModel):
             Vb[i] = Vb[i-1] + (I_factor * 100e-3)
         return Vb
     
+    def resistor(self, g, V, linear=True):
+        if (linear):
+            I = g*V
+        else:
+            k = self.kappa_lin
+            Vt = self.Vt
+            I = 2*g*Vt/k*np.tanh(k*V / (2*Vt))
+        return I
+    
     def i_int(self,V, m, h, n):
-        return (self.gna*(m**self.p)*(h**self.q)*(V - self.Ena) +
-                self.gk*(n**self.r)*(V - self.Ek) + self.gl*(V - self.El))
+        Ina = self.resistor(self.gna*(m**self.p)*(h**self.q), V - self.Ena)
+        Ik = self.resistor(self.gk*(n**self.r), V - self.Ek)
+        Il = self.resistor(self.gl, V - self.El)
+        return (Ina + Ik + Il)
 
-    def iNa_ss(self,V):
-        return self.gna*(self.m.inf(V)**self.p)*(self.h.inf(V)**self.q)*(V - self.Ena)
+    # Modify this    
+    # def iNa_ss(self,V):
+    #     return self.gna*(self.m.inf(V)**self.p)*(self.h.inf(V)**self.q)*(V - self.Ena)
 
-    def iK_ss(self,V):
-        return self.gk*(self.n.inf(V)**self.r)*(V - self.Ek)    
+    # def iK_ss(self,V):
+    #     return self.gk*(self.n.inf(V)**self.r)*(V - self.Ek)    
 
-    def iL_ss(self,V):
-        return self.gl*(V - self.El)
+    # def iL_ss(self,V):
+    #     return self.gl*(V - self.El)
     
     def vfield(self, x, I):
         V, m, h, n = x
