@@ -29,7 +29,7 @@ V_ref = 0.9
 
 ND = NeuroDynModel(dg, dE, dIb, V_ref, fit.I_voltage, fit.I_master)
 
-T = 0.01
+T = 0.02
 trange = (0, T)
 
 sol = ND.simulate(trange,[0.7,0,0,0],Iapp)

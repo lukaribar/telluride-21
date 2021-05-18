@@ -215,7 +215,7 @@ class NeuroDynModel(NeuronalModel):
         
         # Scaling parameters (e.g. parameters that set the voltage scale, time scale..)
         self.kappa = 0.7
-        self.kappa_lin = 0.7 # linearized slope of conductance amplifiers
+        self.kappa_lin = 0.2 # linearized slope of conductance amplifiers
         self.Vt = 26e-3     # Unit V
         self.Res = 1.63e6   # Unit Ohm
         
@@ -288,7 +288,7 @@ class NeuroDynModel(NeuronalModel):
             Vb[i] = Vb[i-1] + (I_factor * 100e-3)
         return Vb
     
-    def resistor(self, g, V, linear=True):
+    def resistor(self, g, V, linear=False):
         if (linear):
             I = g*V
         else:
