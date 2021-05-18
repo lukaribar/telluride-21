@@ -40,3 +40,22 @@ plt.ylabel('V')
 plt.title('NeuroDyn simulation')
 plt.plot(sol.t, sol.y[0])
 plt.show()
+
+#%% Print the parameter values
+print('\nImaster = ', ND.I_master)
+print('Ivoltage = ', ND.I_voltage)
+print('Vref = ', V_ref, '\n')
+
+print('Digital values for maximal conductances:')
+print('[gna, gk, gl] = ', ND.dg, '\n')
+
+print('Digital values for reversal potentials:')
+print('[Ena, Ek, El] = ', dE, '\n')
+
+print('Digital values for gating variable kinetics:')
+print('alpha_m = ', dIb[0][0])
+print('beta_m = ', dIb[0][1], '\n')
+print('alpha_h = ', dIb[1][0])
+print('beta_h = ', dIb[1][1], '\n')
+print('alpha_n = ', dIb[2][0])
+print('beta_n = ', dIb[2][1], '\n')
