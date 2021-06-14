@@ -200,7 +200,7 @@ class NeuroDynModel(NeuronalModel):
     """
     def __init__(self, dg=np.array([400, 160, 12]), dErev=np.array([450, -250, -150]),
                  dIb=[], V_ref=0.9, I_voltage = 270e-9, I_master = 200e-9,
-                 I_ref = 100e-9):
+                 I_ref = 100e-9, capacitance_scaling = 1.0):
         self.V_ref = V_ref              # Unit V
         self.I_voltage = I_voltage      # Unit A
         self.I_master = I_master        # Unit A
@@ -210,8 +210,8 @@ class NeuroDynModel(NeuronalModel):
         self.vLow = self.V_ref - I_voltage*1.85*1e6
         
         # Membrane & gate capacitances
-        self.C_m = 4e-12        # Unit F
-        self.C_gate = 5e-12     # Unit F
+        self.C_m = 4e-12 * capacitance_scaling      # Unit F
+        self.C_gate = 5e-12                         # Unit F
         
         # Scaling parameters (e.g. parameters that set the voltage scale, time scale..)
         self.kappa = 0.7
