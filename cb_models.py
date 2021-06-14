@@ -322,8 +322,13 @@ class NeuroDynModel(NeuronalModel):
         return I
     
     def i_int(self,V, m, h, n):
-        Ina = self.resistor(self.gna*(m**self.p)*(h**self.q), V - self.Ena)
-        Ik = self.resistor(self.gk*(n**self.r), V - self.Ek)
+        # Fixes an issue encountered when p, q, and r are floating point numbs
+        m = abs(m)
+        h = abs(h)
+        n = abs(n)
+        
+        Ina = self.resistor(self.gna * (m**self.p) * (h**self.q), V - self.Ena)
+        Ik = self.resistor(self.gk * (n**self.r), V - self.Ek)
         Il = self.resistor(self.gl, V - self.El)
         return (Ina + Ik + Il)
 
