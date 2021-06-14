@@ -15,7 +15,8 @@ class FitND:
     methods for setting the parameters of the NeuroDyn chip to fit a Hodgkin-
     Huxley model
     """
-    def __init__(self, NDModel, HHModel, vrange=[], initial_fit=False):
+    def __init__(self, NDModel, HHModel, vrange=[], I_voltage=150e-9, 
+                 I_master = 200e-9, initial_fit=False):
         self.NDModel = NDModel
         self.HHModel = HHModel
         
@@ -32,16 +33,16 @@ class FitND:
         params = NDModel.get_pars()
         self.__dict__.update(params)
         
-        # Set initial currents
-        self.I_voltage = 150*1e-9 # should be between ~50nA-400nA
-        self.I_master = 200e-9 # define here instead of reading from ND model
+        # Set initial currents (should be between ~50nA-400nA)
+        self.I_voltage = I_voltage
+        self.I_master = I_master
         
         # Initial fit to find optimal Vmean and I_voltage
         if (initial_fit):
             self.initial_fit()
         
         # Calculate base voltages
-        self.Vstep = self.I_voltage*(1.85*1e6)/3.5
+        self.Vstep = self.I_voltage*(1.85*1e6) / 3.5
         self.Vb = self.Vmean + np.arange(start=-3,stop=4,step=1)*self.Vstep
         
         # Maximal coefficients
