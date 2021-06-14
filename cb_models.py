@@ -346,10 +346,10 @@ class NeuroDynModel(NeuronalModel):
         return [dV, dm, dh, dn]
 
     def perturb(self,sigma=0.15):
-        # Pertrub exponents
-        self.p = 3 + 0.2*np.random.randn()
-        self.q = 1 + 0.1*np.random.randn()
-        self.r = 4 + 0.2*np.random.randn()
+        # Pertrub exponents (need to fix this!!!)
+        #self.p = 3 + 0.2*np.random.randn()
+        #self.q = 1 + 0.1*np.random.randn()
+        #self.r = 4 + 0.2*np.random.randn()
         
         # For each alpha/beta, perturb sigmoid base currents
         for x in [self.m, self.h, self.n]:
