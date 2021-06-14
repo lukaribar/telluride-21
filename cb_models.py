@@ -268,7 +268,27 @@ class NeuroDynModel(NeuronalModel):
         # Factor for converting digital to physical Erev
         E_factor = (self.I_voltage / 1024) * self.Res
         return dErev * E_factor + self.V_ref
-
+    
+    def update_dg(self, dg):
+        self.dg = dg
+        self.gna,self.gk,self.gl = self.convert_conductance(dg)
+    
+    def update_dErev(self, dErev):
+        self.dErev = dErev
+        self.Ena,self.Ek,self.El = self.convert_potential(dErev)
+        
+    def update_dIb(self, dIb):
+        self.dIb = dIb
+        
+        Ib_m = self.convert_current(dIb[0])
+        Ib_h = self.convert_current(dIb[1])
+        Ib_n = self.convert_current(dIb[2])
+        
+        Vb = self.Vb
+        self.m = NeuroDynActivation(Ib_m,self.kappa,self.C_gate,self.Vt,Vb)
+        self.h = NeuroDynInactivation(Ib_h,self.kappa,self.C_gate,self.Vt,Vb)
+        self.n = NeuroDynActivation(Ib_n,self.kappa,self.C_gate,self.Vt,Vb)
+    
     def get_pars(self):
         params = {
             'kappa': self.kappa,
