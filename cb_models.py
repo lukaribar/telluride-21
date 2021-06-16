@@ -222,6 +222,10 @@ class NeuroDynModel(NeuronalModel):
         # Digital parameters
         self.dg = dg
         self.dErev = dErev
+        
+        # Perturbation arrays for g and Erev, initialize at 1
+        self.perturb_g = np.ones(dg.shape)
+        self.perturb_Erev = np.ones(dErev.shape)
                 
         # Convert digital to physical
         self.gna,self.gk,self.gl = self.convert_conductance(dg)
@@ -262,12 +266,12 @@ class NeuroDynModel(NeuronalModel):
     def convert_conductance(self, dg):
         # Factor for converting digital to physical g
         g_factor = (self.kappa_lin / self.Vt) * (self.I_master / 1024)
-        return dg * g_factor
+        return dg * g_factor * self.perturb_g
         
     def convert_potential(self, dErev):
         # Factor for converting digital to physical Erev
         E_factor = (self.I_voltage / 1024) * self.Res
-        return dErev * E_factor + self.V_ref
+        return dErev * E_factor * self.perturb_Erev + self.V_ref
     
     def update_dg(self, dg):
         self.dg = dg
@@ -352,16 +356,10 @@ class NeuroDynModel(NeuronalModel):
             x.alpharate.perturb(sigma)
             x.betarate.perturb(sigma)
             
-        # Perturb maximal conductances
-        self.gna = self.convert_conductance(self.dg[0]*(1 + sigma*np.random.randn()))
-        self.gk = self.convert_conductance(self.dg[1]*(1 + sigma*np.random.randn()))
-        self.gl = self.convert_conductance(self.dg[2]*(1 + sigma*np.random.randn()))
-        
-        # Perturb reversal potentials
-        self.Ena = self.convert_potential(self.dErev[0]*(1 + sigma*np.random.randn()))
-        self.Ek = self.convert_potential(self.dErev[1]*(1 + sigma*np.random.randn()))
-        self.El = self.convert_potential(self.dErev[2]*(1 + sigma*np.random.randn()))
-        
+        # Perturb maximal conductances and reversal potentials
+        self.perturb_g = 1 + sigma * np.random.randn(*self.dg.shape)
+        self.perturb_Erev = 1 + sigma * np.random.randn(*self.dErev.shape)
+                
         # Perturb voltage offsets?
         # Would add ~15mV sigma to each 'bias' voltage
 
