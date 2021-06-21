@@ -356,9 +356,13 @@ class NeuroDynModel(NeuronalModel):
             x.alpharate.perturb(sigma)
             x.betarate.perturb(sigma)
             
-        # Perturb maximal conductances and reversal potentials
+        # Update perturbation arrays for g and Erev
         self.perturb_g = 1 + sigma * np.random.randn(*self.dg.shape)
         self.perturb_Erev = 1 + sigma * np.random.randn(*self.dErev.shape)
+        
+        # Update g and Erev
+        self.gna,self.gk,self.gl = self.convert_conductance(self.dg)
+        self.Ena,self.Ek,self.El = self.convert_potential(self.dErev)
                 
         # Perturb voltage offsets?
         # Would add ~15mV sigma to each 'bias' voltage
