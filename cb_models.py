@@ -588,23 +588,39 @@ class NeuroDynBoard(NeuronalNetwork):
     
     """
     
-    def __init__(self, neurons = None, syns = None, short_circuit = True):
+    def __init__(self, neurons = None, syns = None, short_circuit = False):
         
         # Define neuronal models
         if (neurons is None):
-            self.neurons = [NeuroDynModel() for i in range(4)]
+            neurons = [NeuroDynModel() for i in range(4)]
         
         # Define synapses
         if (syns is None):
-            self.syns = [[Synapse() if (i != j) else None for j in range (4)] for i in range (4)]
-            
-        # Define short circuit neurons
-        if (short_circuit):
-            sc_neurons = [ShortCircuit(neurons[i*2:(i+1)*2]) for i in range(2)]
-            self.sc_neurons = sc_neurons
-            
+            syns = [[Synapse() if (i != j) else None for j in range (4)] for i in range (4)]
         
+        self.board_neurons = neurons
+        self.board_syns = syns
+        
+        if not(short_circuit):
+            super().__init__(neurons, syns = syns)
+        else:
+            # Define short circuit neurons
+            sc_neurons = [ShortCircuit(neurons[i*2:(i+1)*2]) for i in range(2)]
+            
+            # Determine short circuit synapses
+            sc_syns = [[None for j in range(2)] for i in range(2)]
+            sc_syns[0][0] = [syns[0][1], syns[1][0]]
+            sc_syns[0][1] = syns[0][2:] + syns[1][2:]
+            sc_syns[1][0] = syns[2][0:2] + syns[3][0:2]
+            sc_syns[1][1] = [syns[2][3], syns[3][2]]
+            
+            super().__init__(sc_neurons, syns = sc_syns)
+        
+    def get_neuron(self, i):
+        return self.board_neurons[i]
     
+    def get_syn(self, i, j):
+        return self.board_syns[i][j]
     
     
     
