@@ -580,13 +580,12 @@ class NeuronalNetwork(NeuronalModel):
         # State size for each neuron
         x_lens = [neuron.x_len for neuron in self.neurons]
         
-        idx_syn = sum(x_lens) # synapse states start after neural states
+        # Index of the first synapse state
+        idx_syn = sum(x_lens)
         
-        # x[i_x[i]] is the starting state for neuron i
+        # i_x[i] is the index of the first state for neuron i
         i_x = np.cumsum(np.pad(x_lens[:-1], (1, 0)))
                 
-        # Iterate through all neurons
-        # Note: need to take into account number of states if not const 4
         for i, neuron_i in enumerate(self.neurons):
             # Total synaptic and gap junction current to neuron i
             i_syn = 0
@@ -595,12 +594,15 @@ class NeuronalNetwork(NeuronalModel):
             Vpost = x[i_x[i]]
             for j, _ in enumerate(self.neurons):
                 Vpre = x[i_x[j]]
-                if (self.syns[i][j] is not None):
-                    for syn in self.syns[i][j]:
-                        r = x[idx_syn] # activation of the synapse
-                        i_syn += syn.Iout(r, Vpost)
-                        dx_syn.append(syn.r.vfield(r, Vpre, Vpost))
-                        idx_syn += 1
+                
+                # Go through all synaptic connections j -> i
+                if (self.syns is not None):
+                    if (self.syns[i][j] is not None):
+                        for syn in self.syns[i][j]:
+                            r = x[idx_syn] # activation of the synapse
+                            i_syn += syn.Iout(r, Vpost)
+                            dx_syn.append(syn.r.vfield(r, Vpre, Vpost))
+                            idx_syn += 1
                 
                 if (self.gapAdj is not None):
                     i_gap += self.gapAdj[i][j] * (Vpost - Vpre)
