@@ -621,10 +621,3 @@ class NeuronalNetwork(NeuronalModel):
             
         dx.extend(dx_syn)
         return dx
-        
-# class NeuroDynCascade(NeuronalNetwork):
-#     def __init__(self):
-#         neurons = [NeuroDynModel(),NeuroDynModel()]
-#         gapAdj = []
-#         synAdj = np.array([[0,1],[0,0]])
-#         synList = [[[],[NeuroDynAMPA()]],[],[]]
