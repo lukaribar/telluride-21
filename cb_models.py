@@ -577,7 +577,9 @@ class NeuronalNetwork(NeuronalModel):
         dx = []
         dx_syn = []
         
-        idx_syn = len(self.neurons)*4 # synapse states start after neural states
+        x_lens = [neuron.x_len for neuron in self.neurons]
+        
+        idx_syn = sum(x_lens) # synapse states start after neural states
         
         # Iterate through all neurons
         # Note: need to take into account number of states if not const 4
