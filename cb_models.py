@@ -592,15 +592,18 @@ class NeuroDynBoard(NeuronalNetwork):
         
         # Define neuronal models
         if (neurons is None):
-            neurons = [NeuroDynModel() for i in range(4)]
+            self.neurons = [NeuroDynModel() for i in range(4)]
         
         # Define synapses
         if (syns is None):
-            syns = [[Synapse() if (i != j) else None for j in range (4)] for i in range (4)]
+            self.syns = [[Synapse() if (i != j) else None for j in range (4)] for i in range (4)]
             
         # Define short circuit neurons
         if (short_circuit):
             sc_neurons = [ShortCircuit(neurons[i*2:(i+1)*2]) for i in range(2)]
+            self.sc_neurons = sc_neurons
+            
+        
     
     
     
