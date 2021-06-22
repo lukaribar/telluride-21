@@ -598,7 +598,11 @@ class NeuroDynBoard(NeuronalNetwork):
         if (syns is None):
             syns = [[Synapse() if (i != j) else None for j in range (4)] for i in range (4)]
             
-        
+        # Define short circuit neurons
+        if (short_circuit is not None):
+            for el in short_circuit:
+                el.sort()
+                
     
     
     
