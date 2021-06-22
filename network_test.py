@@ -10,7 +10,7 @@ syn = AMPASynapse(0.1)
 syns = [[None, None], [[syn], None]]
 gapAdj = [[0, 0], [0, 0]]
 
-network = NeuronalNetwork(neurons, gapAdj = gapAdj, syns = syns)
+network = NeuronalNetwork(neurons, gap = gapAdj, syns = syns)
 
 T = 200
 trange = (0, T)
