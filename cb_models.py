@@ -579,3 +579,55 @@ class NeuronalNetwork(NeuronalModel):
             
         dx.extend(dx_syn)
         return dx
+    
+class NeuroDynBoard(NeuronalNetwork):
+    """
+    Network class representing a single NeuroDyn board consisting of four
+    NeuroDyn neurons with full synaptic connectivity between them. Neurons can
+    also be short-circuited when creating an object.
+    
+    """
+    
+    def __init__(self, neurons = None, syns = None, short_circuit = None):
+        
+        # Define neuronal models
+        if (neurons is None):
+            neurons = [NeuroDynModel() for i in range(4)]
+        
+        # Define synapses
+        if (syns is None):
+            syns = [[Synapse() if (i != j) else None for j in range (4)] for i in range (4)]
+            
+        
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
