@@ -568,7 +568,7 @@ class NeuronalNetwork(NeuronalModel):
         syns : a matrix containing a list of synapse objects in each entry corresponding
             to a 1 in synAdj
     """
-    def __init__(self, neurons, gapAdj=[], syns=[]):
+    def __init__(self, neurons, gapAdj = None, syns= None):
         self.neurons = neurons
         self.gapAdj = gapAdj
         self.syns = syns
@@ -588,6 +588,7 @@ class NeuronalNetwork(NeuronalModel):
         # Iterate through all neurons
         # Note: need to take into account number of states if not const 4
         for i, neuron_i in enumerate(self.neurons):
+            # Total synaptic and gap junction current to neuron i
             i_syn = 0
             i_gap = 0
             
@@ -601,12 +602,17 @@ class NeuronalNetwork(NeuronalModel):
                         dx_syn.append(syn.r.vfield(r, Vpre, Vpost))
                         idx_syn += 1
                 
-                if (self.gapAdj != []):
+                if (self.gapAdj is not None):
                     i_gap += self.gapAdj[i][j] * (Vpost - Vpre)
                 
+            # Total current to neuron i
             Iext = I[i] - i_syn - i_gap
+            
+            # Start and end indides for states of neuron i
             i_start = i_x[i]
             i_end = i_x[i] + x_lens[i]
+            
+            # Add dx for neuron i
             dx.extend(neuron_i.vfield(x[i_start:i_end], Iext))
             
         dx.extend(dx_syn)
