@@ -85,7 +85,6 @@ class NeuroDynInactivation(HHKinetics):
     def beta(self,V):
         return self.betarate.I_rate(V) / (self.C * self.Vt)
 
-#self.m = HHActivation(25*scl_v, 0.1*scl_t/scl_v, 10*scl_v, 0*scl_v, 4*scl_t, 18*scl_v)
 class HHActivation(HHKinetics):
     """
     HH-type (alpha-beta) activation gating variable kinetics.
@@ -120,7 +119,6 @@ class HHActivation(HHKinetics):
     def beta(self,V):
         return self.bA * exp((self.bVh - V) / self.bK)
 
-#self.h = HHInactivation(0*scl_v, 0.07*scl_t, 20*scl_v, 30*scl_v, 1*scl_t, 10*scl_v)
 class HHInactivation(HHKinetics):
     """
     HH-type (alpha-beta) inactivation gating variable kinetics. 
@@ -201,6 +199,9 @@ class NeuroDynModel(NeuronalModel):
     def __init__(self, dg=np.array([400, 160, 12]), dErev=np.array([450, -250, -150]),
                  dIb=[], V_ref=0.9, I_voltage = 270e-9, I_master = 200e-9,
                  I_ref = 100e-9, capacitance_scaling = 1.0):
+        # Number of states (needed for network class)
+        self.x_len = 4
+        
         self.V_ref = V_ref              # Unit V
         self.I_voltage = I_voltage      # Unit A
         self.I_master = I_master        # Unit A
@@ -326,16 +327,6 @@ class NeuroDynModel(NeuronalModel):
         Ik = self.resistor(self.gk*(n**self.r), V - self.Ek)
         Il = self.resistor(self.gl, V - self.El)
         return (Ina + Ik + Il)
-
-    # Modify this    
-    # def iNa_ss(self,V):
-    #     return self.gna*(self.m.inf(V)**self.p)*(self.h.inf(V)**self.q)*(V - self.Ena)
-
-    # def iK_ss(self,V):
-    #     return self.gk*(self.n.inf(V)**self.r)*(V - self.Ek)    
-
-    # def iL_ss(self,V):
-    #     return self.gl*(V - self.El)
     
     def vfield(self, x, I):
         V, m, h, n = x
@@ -373,6 +364,9 @@ class HHModel(NeuronalModel):
     """    
     def __init__(self, gna=120, gk=36, gl=0.3, Ena=120, Ek =-12, El =10.6,
                  gates=[], scl_v=1, scl_t=1, SI_units=False):
+        # Number of states (needed for network class)
+        self.x_len = 4
+        
         self.C_m = 1
         self.gna = gna*scl_t
         self.gk = gk*scl_t
@@ -472,6 +466,9 @@ class ShortCircuit(NeuronalModel):
     """
     def __init__(self, neurons):
         self.neurons = neurons
+        
+        # Number of states
+        self.x_len = len(neurons)*3 + 1
                 
         # Find total capacitance
         self.C_m = 0
