@@ -563,10 +563,12 @@ class NeuronalNetwork(NeuronalModel):
     """
     Neuronal network class (biophysical or neuromorphic)
     Arguments:
-        gapAdj : a gap junction adjacency matrix containing conductance values
-        synAdj : a synapse adjacency matrix containing 1's and 0's
-        syns : a matrix containing a list of synapse objects in each entry corresponding
-            to a 1 in synAdj
+        gap : a gap junction adjacency matrix containing conductance values
+        syns : a matrix defining the synaptic connections:
+            - syns[i][j] == None: no synaptic connection from neuron j to
+            neuron i
+            - otherwise, syns[i][j] is a list of synapse objects from neuron j
+            to i
     """
     def __init__(self, neurons, gap = None, syns= None):
         self.neurons = neurons
