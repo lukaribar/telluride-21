@@ -562,7 +562,7 @@ class AMPASynapse(Synapse):
     def __init__(self, gsyn):
         super().__init__(gsyn, 65, AMPA())
         
-class NeuronalNetwork:
+class NeuronalNetwork(NeuronalModel):
     """
     Neuronal network class (biophysical or neuromorphic)
     Arguments:
@@ -608,15 +608,6 @@ class NeuronalNetwork:
         dx.extend(dx_syn)
         return dx
         
-    def simulate(self, trange, x0, Iapp, mode="continuous"):
-        # Note: Iapp should be a function of t, e.g., Iapp = lambda t : I0
-        if mode == "continuous":
-            def odesys(t, x):
-                return self.vfield(x, Iapp(t))
-            return solve_ivp(odesys, trange, x0)
-        else:
-            #... code forward-Euler integration
-            return
 # class NeuroDynCascade(NeuronalNetwork):
 #     def __init__(self):
 #         neurons = [NeuroDynModel(),NeuroDynModel()]
