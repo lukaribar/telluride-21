@@ -568,10 +568,9 @@ class NeuronalNetwork(NeuronalModel):
         syns : a matrix containing a list of synapse objects in each entry corresponding
             to a 1 in synAdj
     """
-    def __init__(self,neurons,gapAdj=[],synAdj=[],syns=[]):
+    def __init__(self, neurons, gapAdj=[], syns=[]):
         self.neurons = neurons
         self.gapAdj = gapAdj
-        self.synAdj = synAdj
         self.syns = syns
 
     def vfield(self, x, I):
@@ -589,7 +588,7 @@ class NeuronalNetwork(NeuronalModel):
             Vpost = x[i*4]
             for j, _ in enumerate(self.neurons):
                 Vpre = x[j*4]
-                if (self.synAdj[i][j]):
+                if (self.syns[i][j] is not None):
                     for syn in self.syns[i][j]:
                         r = x[idx_syn] # activation of the synapse
                         i_syn += syn.Iout(r, Vpost)
