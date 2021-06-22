@@ -5,7 +5,7 @@ neuron1 = HHModel()
 neuron2 = HHModel()
 neurons = [neuron1, neuron2]
 
-syn = AMPASynapse(0.03)
+syn = AMPASynapse(0.1)
 
 syns = [[None, None], [[syn], None]]
 

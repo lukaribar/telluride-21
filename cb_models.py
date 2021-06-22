@@ -577,19 +577,23 @@ class NeuronalNetwork(NeuronalModel):
         dx = []
         dx_syn = []
         
+        # State size for each neuron
         x_lens = [neuron.x_len for neuron in self.neurons]
         
         idx_syn = sum(x_lens) # synapse states start after neural states
         
+        # x[i_x[i]] is the starting state for neuron i
+        i_x = np.cumsum(np.pad(x_lens[:-1], (1, 0)))
+                
         # Iterate through all neurons
         # Note: need to take into account number of states if not const 4
         for i, neuron_i in enumerate(self.neurons):
             i_syn = 0
             i_gap = 0
             
-            Vpost = x[i*4]
+            Vpost = x[i_x[i]]
             for j, _ in enumerate(self.neurons):
-                Vpre = x[j*4]
+                Vpre = x[i_x[j]]
                 if (self.syns[i][j] is not None):
                     for syn in self.syns[i][j]:
                         r = x[idx_syn] # activation of the synapse
@@ -601,7 +605,9 @@ class NeuronalNetwork(NeuronalModel):
                     i_gap += self.gapAdj[i][j] * (Vpost - Vpre)
                 
             Iext = I[i] - i_syn - i_gap
-            dx.extend(neuron_i.vfield(x[4*i:4*(i+1)], Iext))
+            i_start = i_x[i]
+            i_end = i_x[i] + x_lens[i]
+            dx.extend(neuron_i.vfield(x[i_start:i_end], Iext))
             
         dx.extend(dx_syn)
         return dx
