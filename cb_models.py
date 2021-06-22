@@ -146,34 +146,6 @@ class HHInactivation(HHKinetics):
     def beta(self,V):
         return self.bA / (exp((self.bVh - V) / self.bK) + 1)
 
-# Develop this in case we decide to work with very general models:
-# class OhmicElement:
-#     """
-#     Single ohmic current element consisting of multiple gates:
-#         Iout = g_max * x1 * x2 * ... * xn * (V - E_rev)
-#         *args: [x1,x2,...,xn] = gates
-#     """
-#     def __init__(self, g_max, E_rev = 0, gates = [], expos = []):
-#         self.g_max = g_max
-#         self.E_rev = E_rev
-#         self.gates = gates
-#         self.expos = expos
-
-#     # Add a gating variable to the conductance element
-#     def add_gate(self, gates):
-#         self.gates.append(gates)
-#         return
-
-#     def kinetics(self,V,X):
-#         dx = np.array([])
-#         for n in range(np.size(self.gates)):
-#             dx.append(self.gates[n].vfield(X[n],V))
-#         return dx
-    
-#     def I(self,V,X):
-#         i_out = self.g_max * (V - self.E_rev)
-#         for n in range(np.size(X))
-
 class NeuronalModel(ABC):
     """
     Abstract class for neuronal models.
