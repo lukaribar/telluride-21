@@ -588,7 +588,7 @@ class NeuroDynBoard(NeuronalNetwork):
     
     """
     
-    def __init__(self, neurons = None, syns = None, short_circuit = None):
+    def __init__(self, neurons = None, syns = None, short_circuit = True):
         
         # Define neuronal models
         if (neurons is None):
@@ -599,10 +599,8 @@ class NeuroDynBoard(NeuronalNetwork):
             syns = [[Synapse() if (i != j) else None for j in range (4)] for i in range (4)]
             
         # Define short circuit neurons
-        if (short_circuit is not None):
-            for el in short_circuit:
-                el.sort()
-                
+        if (short_circuit):
+            sc_neurons = [ShortCircuit(neurons[i*2:(i+1)*2]) for i in range(2)]
     
     
     
