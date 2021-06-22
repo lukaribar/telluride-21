@@ -463,6 +463,9 @@ class ShortCircuit(NeuronalModel):
     """
     Model defined as a short-circuit of several Hodgkin-Huxley or NeuroDyn
     models
+    
+    Arguments:
+        neurons: list of neurons to be short-circuited
     """
     def __init__(self, neurons):
         self.neurons = neurons
@@ -501,6 +504,7 @@ class ShortCircuit(NeuronalModel):
 class Synapse:
     """
     Arbitrary synapse class
+    
     Arguments:
         gsyn: maximal conductance
         Esyn: synapse reversal potential
@@ -543,6 +547,7 @@ class AMPASynapse(Synapse):
 class NeuronalNetwork(NeuronalModel):
     """
     Neuronal network class (biophysical or neuromorphic)
+    
     Arguments:
         gap : a gap junction adjacency matrix containing conductance values
         syns : a matrix defining the synaptic connections:
