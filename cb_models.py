@@ -498,23 +498,21 @@ class ShortCircuit(NeuronalModel):
 
 
 ##### NETWORK-RELATED CLASSES #####
-
-class NeuroDynAMPA(NeuroDynActivation):
+class Synapse:
     """
-    AMPA Synapse in the neurodyn chip.
-    Physiological values taken from Ermentrout et al. 2010, p. 161
+    Arbitrary synapse class
+    Arguments:
+        gsyn: maximal conductance
+        Esyn: synapse reversal potential
+        r: synapse activation kinetics
     """
-    def __init__(self,gsyn=1,Esyn=0,kappa=0.7,C=5e-12,Vt=26e-3,I_master=33e-9):
+    def __init__(self, gsyn, Esyn, r):
         self.gsyn = gsyn
         self.Esyn = Esyn
-        # Physiological constants
-        Tmax, ar, ad, Kp, V_T = 0.001, 1.1, 0.19, 0.005, 0.002
-        dIb = [[Tmax*ar*C*Vt, 0, 0, 0, 0, 0, 0],
-               [0, Tmax*ad*C*Vt, 0, 0, 0, 0, 0]]
-        Vb = [V_T,-10,0,0,0,0,0] 
-        # IMPORTANT: WE CAN'T REALLY USE THE SIGMOIDS THIS WAY.
-        # WE NEED TO FIT THE 7 SIGMOIDS TO THE AMPA SIGMOID
-        super().__init__(dIb,kappa,C,Kp*kappa,Vb) 
+        self.r = r # HHKinetics class
+        
+    def Iout(self, r, Vpost):
+        return self.gsyn * r * (Vpost - self.Esyn)
 
 class AMPA(HHKinetics):
     """
@@ -534,23 +532,6 @@ class AMPA(HHKinetics):
 
     def beta(self,V):
         return self.ad
-
-# Could be derived from general conductance class if we code it?
-class Synapse:
-    """
-    Arbitrary synapse class
-    Arguments:
-        gsyn: maximal conductance
-        Esyn: synapse reversal potential
-        r: synapse activation kinetics
-    """
-    def __init__(self, gsyn, Esyn, r):
-        self.gsyn = gsyn
-        self.Esyn = Esyn
-        self.r = r # HHKinetics class
-        
-    def Iout(self, r, Vpost):
-        return self.gsyn * r * (Vpost - self.Esyn)
 
 class AMPASynapse(Synapse):
     """
