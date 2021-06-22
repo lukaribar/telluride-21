@@ -8,9 +8,9 @@ neurons = [neuron1, neuron2]
 syn = AMPASynapse(0.1)
 
 syns = [[None, None], [[syn], None]]
-gapAdj = [[0, 0], [0, 0]]
+gap = [[0, 0], [0, 0]]
 
-network = NeuronalNetwork(neurons, gap = gapAdj, syns = syns)
+network = NeuronalNetwork(neurons, gap = gap, syns = syns)
 
 T = 200
 trange = (0, T)
