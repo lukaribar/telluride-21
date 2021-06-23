@@ -49,7 +49,26 @@ class FitND:
         self.cmax = 0
         self.gmax = 0
         self.scl_t = 0
-
+    
+    # def fitHH(self, plot_alpha_beta = False, plot_inf_tau = False):
+    #     """
+    #     Fit the Hodgkin-Huxley model
+    #     """
+        
+    #     Vrange = self.vrange
+    #     c = []
+    #     A = []
+        
+    #     X = [self.HHModel.m,self.HHModel.h,self.HHModel.n]
+        
+    #     # Fit the variables and plot results
+    #     for x in X:
+    #         c_a,c_b,A_alpha,A_beta = self.fit_gating_variable(x)
+    #         c.append([c_a, c_b])
+    #         A.append([A_alpha, A_beta])
+            
+        
+    
     def fit(self, X=[], labels=[], plot_alpha_beta=False, plot_inf_tau=False):
         """
         Fits a list of gating variables in X.
