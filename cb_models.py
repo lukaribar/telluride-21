@@ -516,6 +516,30 @@ class AMPASynapse(Synapse):
     def __init__(self, gsyn):
         super().__init__(gsyn, 65, AMPA())
         
+class NDSynapse(Synapse):
+    def __init__(self, dg, dE, dIb, ND = None):
+        # Set parent NeuroDyn chip to get the parameters
+        if (ND is None):
+            ND = NeuroDynModel()
+        self.ND = ND
+        
+        # Digital values
+        self.dg = dg
+        self.dE = dE
+        self.dIb = dIb
+        
+        # Convert to analog
+        g = ND.convert_conductance(dg)
+        E = ND.convert_potential(dE)
+        Ib = ND.convert_current(dIb)
+        
+        # Define the activation variable
+        r = NeuroDynActivation(Ib, ND.kappa, ND.C_gate, ND.Vt, ND.Vb)
+        
+        # Initialize synapse parameters
+        super().__init__(g, E, r)
+        
+
 class NeuronalNetwork(NeuronalModel):
     """
     Neuronal network class (biophysical or neuromorphic)
