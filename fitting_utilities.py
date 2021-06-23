@@ -200,8 +200,12 @@ class FitND:
         A_beta = np.zeros((np.size(Vrange),7))
         b_alpha = x.alpha(Vrange)
         b_beta = x.beta(Vrange)
+        
+        # Check if the gating variable is activation or inactivation
+        isActivation = b_alpha[-1] > b_alpha[0]
+        
         for i in range(7):
-            if isinstance(x,HHActivation):
+            if isActivation:
                 A_alpha[:,i] = 1 / (1 + np.exp(1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
                 A_beta[:,i] = 1 / (1 + np.exp(-1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
             else:
