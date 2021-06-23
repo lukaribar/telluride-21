@@ -230,10 +230,11 @@ class FitND:
             else:
                 A_alpha[:,i] = 1 / (1 + np.exp(-1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
                 A_beta[:,i] = 1 / (1 + np.exp(1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
+        
         c_a = nnls(A_alpha,b_alpha)[0]
         c_b = nnls(A_beta,b_beta)[0]
     
-        return c_a,c_b,A_alpha,A_beta
+        return c_a, c_b, A_alpha, A_beta
         
     def convert_I(self, I0):
         scl_v = self.HHModel.scl_v

@@ -35,7 +35,7 @@ class NeuroDynRate:
     """
     NeuroDyn-type alpha or beta functions (kinetic rates)
     """
-    def __init__(self,Ib,kappa,Vt,Vb,sign):
+    def __init__(self, Ib, kappa, Vt, Vb, sign):
         self.Ib = Ib
         self.perturbations = np.ones(np.size(Ib))
         self.kappa = kappa
@@ -43,14 +43,14 @@ class NeuroDynRate:
         self.Vb = Vb
         self.sign = sign
 
-    def I_rate(self,V):
+    def I_rate(self, V):
         I=0
         Ib = self.Ib * self.perturbations
         for i in range(np.size(self.Ib)):
             I += Ib[i] / (1 + np.exp(self.sign * self.kappa * (self.Vb[i] - V)  / self.Vt))
         return I     
     
-    def perturb(self, sigma=0.15):
+    def perturb(self, sigma = 0.15):
         self.perturbations = (1 + sigma*np.random.randn(7))
         
 class NeuroDynActivation(HHKinetics):
