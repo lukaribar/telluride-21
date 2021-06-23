@@ -507,7 +507,8 @@ class AMPA(HHKinetics):
         return self.ar * self.Tmax / (1+np.exp(-(V-self.V_T)/self.Kp))
 
     def beta(self,V):
-        return self.ad
+        V = np.asarray(V)
+        return self.ad * np.ones(V.shape)
 
 class AMPASynapse(Synapse):
     """
