@@ -3,6 +3,7 @@ Classes and methods for fitting NeuroDyn model
 Important: all fitting is done assuming that the rest potential 
 (or the threhsold potential) of the biophysical model is at 0V.
 """
+
 import numpy as np
 from scipy.optimize import nnls, minimize, Bounds
 import matplotlib.pyplot as plt
@@ -14,8 +15,8 @@ class FitND:
     methods for setting the parameters of the NeuroDyn chip to fit a Hodgkin-
     Huxley model that is passed as the argument.
     """
-    def __init__(self, HHModel, vrange=[], capacitance_scaling = 1, 
-                 I_voltage=150e-9, I_master = 200e-9, initial_fit=False):
+    def __init__(self, HHModel, vrange = None, capacitance_scaling = 1, 
+                 I_voltage=150e-9, I_master = 200e-9, initial_fit = False):
         
         NDModel = NeuroDynModel(I_voltage = I_voltage, I_master = I_master,
                                capacitance_scaling = capacitance_scaling,
@@ -24,9 +25,9 @@ class FitND:
         self.HHModel = HHModel
         
         # Set default fitting range
-        if (vrange == []):
+        if (vrange == None):
             vstart = HHModel.Ek
-            vend   = HHModel.Ena/2 # this is arbitrary!!!
+            vend   = HHModel.Ena / 2 # this can be changed
             vrange = np.arange(vstart, vend, 5e-4).T
         self.vrange = vrange
         
@@ -46,8 +47,15 @@ class FitND:
         if (initial_fit):
             self.initial_fit()
         
-        # Calculate base voltages (V_ref = 0 so Vb will be around 0)
-        self.Vb = NDModel.get_Vb() + self.Vmean
+        # Calculate base voltages (V_ref = 0 so Vb will be centered around 0)
+        self.Vb = NDModel.get_Vb() + self.Vmean # add Vmean to center around it
+        
+        # Fit to Hodgkin-Huxley model
+        #X = [self.HHModel.m,self.HHModel.h,self.HHModel.n]
+        
+        
+        #labels = ['m','h','n']
+        
         
         # Maximal coefficients
         self.weightmax = 0
@@ -79,8 +87,11 @@ class FitND:
         
         weights_a = nnls(A_alpha,b_alpha)[0]
         weights_b = nnls(A_beta,b_beta)[0]
-    
-        return weights_a, weights_b, A_alpha, A_beta
+        
+        weights = [weights_a, weights_b]
+        A = [A_alpha, A_beta]
+        
+        return weights, A
     
     def convert_weights_to_Ib(self, weights):
         weights = np.asarray(weights)
@@ -128,9 +139,9 @@ class FitND:
         
         # Fit the variables and plot results
         for x in X:
-            weights_a, weights_b, A_alpha, A_beta = self.fit_gating_variable(x)
-            weights.append([weights_a, weights_b])
-            A.append([A_alpha, A_beta])
+            w_x, A_x = self.fit_gating_variable(x)
+            weights.append(w_x)
+            A.append(A_x)
         
         # Calculate quantized plots
         g = [120e-3,36e-3,0.3e-3]
