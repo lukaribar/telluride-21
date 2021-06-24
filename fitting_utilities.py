@@ -91,35 +91,42 @@ class FitND:
         Ib = weights * self.C * self.Vt
         return Ib
     
-    def fit(self, X=[], labels=[], plot_alpha_beta=False, plot_inf_tau=False):
+    def fit(self, X = None, labels = None, plot_alpha_beta = False,
+            plot_inf_tau=False):
         """
         Fits a list of gating variables in X.
         Returns sigmoid basis functions coefficients c prior to transformation
         into currents.
         """
         Vrange = self.vrange
-        weights = []
-        A = []
-        
+
         # By default just fit the original HH gating variables
-        if (X == []):
+        if (X == None):
             X = [self.HHModel.m,self.HHModel.h,self.HHModel.n]
             labels = ['m','h','n']
-        elif (labels == []):
-            labels = []*len(X) # put empty labels if none provided
+        elif (labels == None):
+            labels = [] * len(X) # put empty labels if none provided
         
         # Fit the variables and plot results
+        weights = []
+        A = []
         for x in X:
             w_x, A_x = self.fit_gating_variable(x)
             weights.append(w_x)
             A.append(A_x)
         
         # Calculate quantized plots
+        # if (X == None):
+        #     g = [120e-3,36e-3,0.3e-3]
+        #     E = [120e-3,-12e-3,10.6e-3]
+        #     dIb, dg, dE = self.quantize(weights, g, E)
+        
         g = [120e-3,36e-3,0.3e-3]
         E = [120e-3,-12e-3,10.6e-3]
-        dIb, dg, dE, scl_t = self.quantize(weights, g, E)
+        dIb, dg, dE = self.quantize(weights, g, E)
         ND = NeuroDynModel(dg, dE, dIb, self.Vmean, self.I_voltage, self.I_master)    
         X_ND = [ND.m, ND.h, ND.n]
+        scl_t = self.scl_t
         
         # PLOT
         for weightsj, Aj, x, x_ND, label in zip(weights,A,X,X_ND,labels):
@@ -130,14 +137,14 @@ class FitND:
             if (plot_alpha_beta):
                 plt.figure()
                 plt.title('α_'+label)
-                plt.plot(Vrange,x.alpha(Vrange),label='Hodgkin-Huxley')
+                plt.plot(Vrange,x.alpha(Vrange),label='Original')
                 plt.plot(Vrange,alpha,label='Fit')
                 plt.plot(Vrange,x_ND.alpha(Vrange)*scl_t,label='Fit quantized')
                 plt.legend()
             
                 plt.figure()
                 plt.title('β_'+label)
-                plt.plot(Vrange,x.beta(Vrange),label='Hodgkin-Huxley')
+                plt.plot(Vrange,x.beta(Vrange),label='Original')
                 plt.plot(Vrange,beta,label='Fit')
                 plt.plot(Vrange,x_ND.beta(Vrange)*scl_t,label='Fit quantized')
                 plt.legend()
@@ -149,14 +156,14 @@ class FitND:
     
                 plt.figure()
                 plt.title('τ_'+label)
-                plt.plot(Vrange,x.tau(Vrange),label='Hodgkin-Huxley')
+                plt.plot(Vrange,x.tau(Vrange),label='Original')
                 plt.plot(Vrange,tau,label='Fit')
                 plt.plot(Vrange,x_ND.tau(Vrange)/scl_t,label='Fit quantized')
                 plt.legend()
         
                 plt.figure()
                 plt.title(label+'_∞')
-                plt.plot(Vrange,x.inf(Vrange),label='Hodgkin-Huxley')
+                plt.plot(Vrange,x.inf(Vrange),label='Original')
                 plt.plot(Vrange,inf,label='Fit')
                 plt.plot(Vrange,x_ND.inf(Vrange),label='Fit quantized')
                 plt.legend()
@@ -223,7 +230,7 @@ class FitND:
             if not((abs(d) <= 1023).all()):
                 print("Some digital values are out of range")
         
-        return dIb, dg, dE, self.scl_t
+        return dIb, dg, dE
 
     def convert_I(self, I0):
         scl_v = self.HHModel.scl_v
