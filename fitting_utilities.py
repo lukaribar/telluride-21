@@ -118,7 +118,7 @@ class FitND:
         scl_t = self.scl_t
         weights_quant = dIb * (self.I_master / 1024) / (self.C * self.Vt) * scl_t
         
-        # PLOT
+        # Plot alpha and beta functions / tau and inf functions
         for w, w_quant, Aj, x, label in zip(weights, weights_quant, A, X, labels):
             alpha = np.dot(Aj[0], w[0])
             beta = np.dot(Aj[1], w[1])
