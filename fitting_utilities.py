@@ -211,6 +211,9 @@ class FitND:
 
         self.s = self.scl_t * C_HH / self.C_ND # max conductance / Iapp scaling
     
+    def get_analog(self, weights, g, E):
+        Ib = self.convert_weights_to_Ib(weights)
+    
     
     def quantize(self, weights, g, E):
         """
@@ -224,21 +227,11 @@ class FitND:
         
         self.update_scl_t(weights, g)
         
-        # Recover the (quantized) rate currents from fitted coefficients
-        Ib = []
-        dIb = []
-        dg = []
-        for i in range(len(weights)):
-            # Exact (real numbers) current coefficients, before quantization
-            i_a = self.convert_weights_to_Ib(weights[i][0]) / self.scl_t 
-            i_b = self.convert_weights_to_Ib(weights[i][1]) / self.scl_t
-            Ib.append([i_a, i_b])
-            # Quantize current coefficients
-            di_a = np.round(i_a*1024/self.I_master)
-            di_b = np.round(i_b*1024/self.I_master)
-            dIb.append([di_a, di_b])
+        # Find the bias currents and quantize
+        Ib = self.convert_weights_to_Ib(weights) / self.scl_t
+        dIb = np.round(Ib*1024/self.I_master)
 
-        dIb = np.array(dIb)
+        dg = []
                 
         # Quantize conductances
         g_factor = (self.kappa / self.Vt) * (self.I_master / 1024)
