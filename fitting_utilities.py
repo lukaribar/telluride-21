@@ -243,8 +243,7 @@ class FitND:
         # Check if all digital values are in the range [0, 1023]
         for d in dIb, dg, dE:
             if not((abs(d)<=1023).all()):
-                print("The digital value is out of range:")
-                print(d)
+                print("Some digital values are out of range")
         
         return dIb,dg,dE,self.scl_t
 
