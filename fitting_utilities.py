@@ -211,9 +211,9 @@ class FitND:
 
         self.s = self.scl_t * C_HH / self.C_ND # max conductance / Iapp scaling
     
-    def get_analog(self, weights, g, E):
-        Ib = self.convert_weights_to_Ib(weights)
-    
+    def get_Ib(self, weights):
+        Ib = self.convert_weights_to_Ib(weights) / self.scl_t
+        return Ib
     
     def quantize(self, weights, g, E):
         """
@@ -228,7 +228,7 @@ class FitND:
         self.update_scl_t(weights, g)
         
         # Find the bias currents and quantize
-        Ib = self.convert_weights_to_Ib(weights) / self.scl_t
+        Ib = self.get_Ib(weights)
         dIb = np.round(Ib * 1024 / self.I_master)
                 
         # Quantize conductances
