@@ -55,6 +55,35 @@ class FitND:
         self.gmax = 0
         self.scl_t = 0
     
+    def fit_gating_variable(self, x):
+        """
+        Fit a single gating variable using non-negative least squares
+        """
+        Vrange = self.vrange
+        Vb = self.Vb
+        
+        A_alpha = np.zeros((np.size(Vrange),7))
+        A_beta = np.zeros((np.size(Vrange),7))
+        b_alpha = x.alpha(Vrange)
+        b_beta = x.beta(Vrange)
+        
+        # Check if the gating variable is activation or inactivation
+        isActivation = b_alpha[-1] > b_alpha[0]
+        
+        for i in range(7):
+            if isActivation:
+                A_alpha[:,i] = 1 / (1 + np.exp(1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
+                A_beta[:,i] = 1 / (1 + np.exp(-1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
+            else:
+                A_alpha[:,i] = 1 / (1 + np.exp(-1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
+                A_beta[:,i] = 1 / (1 + np.exp(1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
+        
+        c_a = nnls(A_alpha,b_alpha)[0]
+        c_b = nnls(A_beta,b_beta)[0]
+    
+        return c_a, c_b, A_alpha, A_beta
+    
+    
     # def fitHH(self, plot_alpha_beta = False, plot_inf_tau = False):
     #     """
     #     Fit the Hodgkin-Huxley model
@@ -213,116 +242,90 @@ class FitND:
         
         return dIb,dg,dE,scl_t
 
-    def fit_gating_variable(self, x):
-        """
-        Fit a single gating variable using non-negative least squares
-        """
-        Vrange = self.vrange
-        Vb = self.Vb
-        
-        A_alpha = np.zeros((np.size(Vrange),7))
-        A_beta = np.zeros((np.size(Vrange),7))
-        b_alpha = x.alpha(Vrange)
-        b_beta = x.beta(Vrange)
-        
-        # Check if the gating variable is activation or inactivation
-        isActivation = b_alpha[-1] > b_alpha[0]
-        
-        for i in range(7):
-            if isActivation:
-                A_alpha[:,i] = 1 / (1 + np.exp(1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
-                A_beta[:,i] = 1 / (1 + np.exp(-1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
-            else:
-                A_alpha[:,i] = 1 / (1 + np.exp(-1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
-                A_beta[:,i] = 1 / (1 + np.exp(1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
-        
-        c_a = nnls(A_alpha,b_alpha)[0]
-        c_b = nnls(A_beta,b_beta)[0]
-    
-        return c_a, c_b, A_alpha, A_beta
-        
     def convert_I(self, I0):
         scl_v = self.HHModel.scl_v
         I = I0*scl_v/self.s
         return I
+    
+    # INITIAL FIT METHODS
         
-    def I_rate(self,c,sign,Vb):
-        I=0
-        for i in range(len(Vb)):
-            I += c[i] / (1 + np.exp(sign * self.kappa * (Vb[i] - self.vrange)  / self.Vt))
-        return I
+    # def I_rate(self,c,sign,Vb):
+    #     I=0
+    #     for i in range(len(Vb)):
+    #         I += c[i] / (1 + np.exp(sign * self.kappa * (Vb[i] - self.vrange)  / self.Vt))
+    #     return I
     
-    # Only used for the initial fit
-    def cost(self,Z,X):
-        """
-        inputs:
-            Z contains the list of free variables
-            X is a list of HHKinetics objects to fit
-        output:
-            value of the cost
-        """
-        Vmean = Z[-2]
-        I_voltage = Z[-1]
-        Vstep = I_voltage*(1.85*1e6)/3.5
-        Vb = Vmean + np.arange(start=-3,stop=4,step=1)*Vstep
-        Vrange = self.vrange
+    # # Only used for the initial fit
+    # def cost(self,Z,X):
+    #     """
+    #     inputs:
+    #         Z contains the list of free variables
+    #         X is a list of HHKinetics objects to fit
+    #     output:
+    #         value of the cost
+    #     """
+    #     Vmean = Z[-2]
+    #     I_voltage = Z[-1]
+    #     Vstep = I_voltage*(1.85*1e6)/3.5
+    #     Vb = Vmean + np.arange(start=-3,stop=4,step=1)*Vstep
+    #     Vrange = self.vrange
     
-        out = 0
-        for i, x in enumerate(X):
-            c_a = Z[i*7:(i+1)*7]
-            c_b = Z[len(X)*7+i*7:len(X)*7+(i+1)*7]
-            norm_a = max(x.alpha(Vrange))
-            norm_b = max(x.beta(Vrange))        
-            if isinstance(x,HHActivation):    
-                out += sum(((x.alpha(Vrange) - self.I_rate(c_a,1,Vb))/norm_a)**2) 
-                out += sum(((x.beta(Vrange) - self.I_rate(c_b,-1,Vb))/norm_b)**2) 
-            elif isinstance(x, HHInactivation):
-                out += sum(((x.alpha(Vrange) - self.I_rate(c_a,-1,Vb))/norm_a)**2) 
-                out += sum(((x.beta(Vrange) - self.I_rate(c_b,1,Vb))/norm_b)**2)
-            else:
-                print("Kinetics object not supported")
-                return
+    #     out = 0
+    #     for i, x in enumerate(X):
+    #         c_a = Z[i*7:(i+1)*7]
+    #         c_b = Z[len(X)*7+i*7:len(X)*7+(i+1)*7]
+    #         norm_a = max(x.alpha(Vrange))
+    #         norm_b = max(x.beta(Vrange))        
+    #         if isinstance(x,HHActivation):    
+    #             out += sum(((x.alpha(Vrange) - self.I_rate(c_a,1,Vb))/norm_a)**2) 
+    #             out += sum(((x.beta(Vrange) - self.I_rate(c_b,-1,Vb))/norm_b)**2) 
+    #         elif isinstance(x, HHInactivation):
+    #             out += sum(((x.alpha(Vrange) - self.I_rate(c_a,-1,Vb))/norm_a)**2) 
+    #             out += sum(((x.beta(Vrange) - self.I_rate(c_b,1,Vb))/norm_b)**2)
+    #         else:
+    #             print("Kinetics object not supported")
+    #             return
             
-        return out
+    #     return out
         
-    def initial_fit(self):
-        """
-        Initial fit to find optimal Vmean and I_voltage
-        """
-        # Fit Hodgkin-Huxley gating variables
-        X = [self.HHModel.m,self.HHModel.h,self.HHModel.n]
+    # def initial_fit(self):
+    #     """
+    #     Initial fit to find optimal Vmean and I_voltage
+    #     """
+    #     # Fit Hodgkin-Huxley gating variables
+    #     X = [self.HHModel.m,self.HHModel.h,self.HHModel.n]
         
-        # Initial parameter values
-        C_a = np.array([])
-        C_b = np.array([])
-        for x in X:
-            C_a = np.append(C_a,max(x.alpha(self.vrange))*np.ones(7)/7)
-            C_b = np.append(C_b,max(x.beta(self.vrange))*np.ones(7)/7)
-        Z0 = np.concatenate([C_a,C_b,np.array([self.Vmean, self.I_voltage])])
+    #     # Initial parameter values
+    #     C_a = np.array([])
+    #     C_b = np.array([])
+    #     for x in X:
+    #         C_a = np.append(C_a,max(x.alpha(self.vrange))*np.ones(7)/7)
+    #         C_b = np.append(C_b,max(x.beta(self.vrange))*np.ones(7)/7)
+    #     Z0 = np.concatenate([C_a,C_b,np.array([self.Vmean, self.I_voltage])])
         
-        # Bounds for Vmean and Ivoltage
-        vmin = self.HHModel.Ek
-        vmax = self.HHModel.Ena
-        Imin = 50e-9
-        Imax = 400e-9
+    #     # Bounds for Vmean and Ivoltage
+    #     vmin = self.HHModel.Ek
+    #     vmax = self.HHModel.Ena
+    #     Imin = 50e-9
+    #     Imax = 400e-9
         
-        lowerbd = np.append(np.zeros(14*len(X)),np.array([vmin, Imin]))
-        upperbd = np.append(np.ones(14*len(X))*np.inf,np.array([vmax, Imax]))
-        bd = Bounds(lowerbd,upperbd)
+    #     lowerbd = np.append(np.zeros(14*len(X)),np.array([vmin, Imin]))
+    #     upperbd = np.append(np.ones(14*len(X))*np.inf,np.array([vmax, Imax]))
+    #     bd = Bounds(lowerbd,upperbd)
         
-        Z = minimize(lambda Z : self.cost(Z,X), Z0, bounds = bd)
-        Z = Z.x
+    #     Z = minimize(lambda Z : self.cost(Z,X), Z0, bounds = bd)
+    #     Z = Z.x
         
-        # Check here if reversal potentials are covered by the voltage range
-        #
-        #
+    #     # Check here if reversal potentials are covered by the voltage range
+    #     #
+    #     #
         
-        self.Vmean = Z[-2]
-        self.Ivoltage = Z[-1] 
+    #     self.Vmean = Z[-2]
+    #     self.Ivoltage = Z[-1] 
         
-        # Save the initial fit
-        self.Z0 = Z
-        return
+    #     # Save the initial fit
+    #     self.Z0 = Z
+    #     return
     
     # This should probably go into initial_fit method
     # def plot_initial_fit(self, plot_alpha_beta = True, plot_inf_tau = False):
