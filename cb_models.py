@@ -503,10 +503,10 @@ class AMPA(HHKinetics):
         self.ar = ar        
         self.ad = ad
 
-    def alpha(self,V):
+    def alpha(self, V):
         return self.ar * self.Tmax / (1 + np.exp(-(V - self.V_T) / self.Kp))
 
-    def beta(self,V):
+    def beta(self, V):
         V = np.asarray(V)
         return self.ad * np.ones(V.shape)
 
