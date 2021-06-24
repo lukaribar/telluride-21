@@ -266,7 +266,7 @@ class FitND:
 
     def convert_I(self, I0):
         scl_v = self.HHModel.scl_v
-        I = I0*scl_v/self.s
+        I = I0 * scl_v / self.s
         return I
     
     # INITIAL FIT METHODS
