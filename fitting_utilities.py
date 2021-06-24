@@ -16,7 +16,7 @@ class FitND:
     Huxley model that is passed as the argument.
     """
     def __init__(self, HHModel, vrange = None, capacitance_scaling = 1, 
-                 I_voltage=150e-9, I_master = 200e-9, initial_fit = False):
+                 I_voltage = 150e-9, I_master = 200e-9, initial_fit = False):
         
         NDModel = NeuroDynModel(I_voltage = I_voltage, I_master = I_master,
                                capacitance_scaling = capacitance_scaling,
