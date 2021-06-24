@@ -85,8 +85,10 @@ class FitND:
     
     def convert_weights_to_Ib(self, weights):
         weights = np.asarray(weights)
-        Ib = weights * self.C * self.Vt / self.scl_t
+        Ib = weights * self.C * self.Vt
         return Ib
+    
+    
     
     
     # def fitHH(self, plot_alpha_beta = False, plot_inf_tau = False):
@@ -199,7 +201,7 @@ class FitND:
         
         # Find the scaling factor that maximizes coefficient resolution
         C_HH = 1e-6
-        scl_t = self.weightmax / (Imax / (self.C*self.Vt))
+        scl_t = self.convert_weights_to_Ib(self.weightmax) / Imax
         if (scl_t > self.scl_t):
             self.scl_t = scl_t
 
