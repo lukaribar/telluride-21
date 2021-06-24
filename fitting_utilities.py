@@ -222,8 +222,8 @@ class FitND:
         dg = []
         for i in range(len(weights)):
             # Exact (real numbers) current coefficients, before quantization
-            i_a = weights[i][0] * self.C * self.Vt / self.scl_t 
-            i_b = weights[i][1] * self.C * self.Vt / self.scl_t
+            i_a = self.convert_weights_to_Ib(weights[i][0]) / self.scl_t 
+            i_b = self.convert_weights_to_Ib(weights[i][1]) / self.scl_t
             Ib.append([i_a, i_b])
             # Quantize current coefficients
             di_a = np.round(i_a*1024/self.I_master)
