@@ -50,13 +50,6 @@ class FitND:
         # Calculate base voltages (V_ref = 0 so Vb will be centered around 0)
         self.Vb = NDModel.get_Vb() + self.Vmean # add Vmean to center around it
         
-        # Fit to Hodgkin-Huxley model
-        #X = [self.HHModel.m,self.HHModel.h,self.HHModel.n]
-        
-        
-        #labels = ['m','h','n']
-        
-        
         # Maximal coefficients
         self.wmax = 0
         self.gmax = 0
