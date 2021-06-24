@@ -16,7 +16,7 @@ class FitND:
     Huxley model that is passed as the argument.
     """
     def __init__(self, HHModel, vrange = None, capacitance_scaling = 1, 
-                 I_voltage = 150e-9, I_master = 200e-9, initial_fit = False):
+                 I_voltage = 150e-9, I_master = 200e-9):
         
         NDModel = NeuroDynModel(I_voltage = I_voltage, I_master = I_master,
                                capacitance_scaling = capacitance_scaling,
@@ -42,11 +42,7 @@ class FitND:
         # NeuroDyn currents (should be between ~50nA-400nA)
         self.I_voltage = I_voltage
         self.I_master = I_master
-        
-        # Initial fit to find optimal Vmean and I_voltage
-        if (initial_fit):
-            self.initial_fit()
-        
+                
         # Calculate base voltages (V_ref = 0 so Vb will be centered around 0)
         self.Vb = NDModel.get_Vb() + self.Vmean # add Vmean to center around it
         
