@@ -18,7 +18,8 @@ class FitND:
     def __init__(self, HHModel, vrange=[], capacitance_scaling = 1, 
                  I_voltage=150e-9, I_master = 200e-9, initial_fit=False):
         NDModel = NeuroDynModel(I_voltage = I_voltage, I_master = I_master,
-                               capacitance_scaling = capacitance_scaling)
+                               capacitance_scaling = capacitance_scaling,
+                               V_ref = 0)
         self.NDModel = NDModel
         self.HHModel = HHModel
         
@@ -28,14 +29,16 @@ class FitND:
             vend   = HHModel.Ena/2 # this is arbitrary!!!
             vrange = np.arange(vstart, vend, 5e-4).T
         self.vrange = vrange
-        # Set Vmean to middle of voltage range (or resting potential?)
+        
+        # Vmean: mid-point of the middle (4th) sigmoid
+        #   -> Set to middle of voltage range (or resting potential?)
         self.Vmean = (HHModel.Ek+HHModel.Ena)/2
         
         # Update dictionary with physical constants from NeuroDyn model
         params = NDModel.get_pars()
         self.__dict__.update(params)
         
-        # Set initial currents (should be between ~50nA-400nA)
+        # NeuroDyn currents (should be between ~50nA-400nA)
         self.I_voltage = I_voltage
         self.I_master = I_master
         
@@ -43,9 +46,8 @@ class FitND:
         if (initial_fit):
             self.initial_fit()
         
-        # Calculate base voltages
-        self.Vstep = self.I_voltage*(1.85*1e6) / 3.5
-        self.Vb = self.Vmean + np.arange(start=-3,stop=4,step=1)*self.Vstep
+        # Calculate base voltages (V_ref = 0 so Vb will be around 0)
+        self.Vb = NDModel.get_Vb() + self.Vmean
         
         # Maximal coefficients
         self.cmax = 0
