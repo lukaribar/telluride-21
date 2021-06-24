@@ -91,28 +91,6 @@ class FitND:
         Ib = weights * self.C * self.Vt
         return Ib
     
-    
-    
-    
-    # def fitHH(self, plot_alpha_beta = False, plot_inf_tau = False):
-    #     """
-    #     Fit the Hodgkin-Huxley model
-    #     """
-        
-    #     Vrange = self.vrange
-    #     c = []
-    #     A = []
-        
-    #     X = [self.HHModel.m,self.HHModel.h,self.HHModel.n]
-        
-    #     # Fit the variables and plot results
-    #     for x in X:
-    #         c_a,c_b,A_alpha,A_beta = self.fit_gating_variable(x)
-    #         c.append([c_a, c_b])
-    #         A.append([A_alpha, A_beta])
-            
-        
-    
     def fit(self, X=[], labels=[], plot_alpha_beta=False, plot_inf_tau=False):
         """
         Fits a list of gating variables in X.
@@ -242,10 +220,10 @@ class FitND:
         
         # Check if all digital values are in the range [0, 1023]
         for d in dIb, dg, dE:
-            if not((abs(d)<=1023).all()):
+            if not((abs(d) <= 1023).all()):
                 print("Some digital values are out of range")
         
-        return dIb,dg,dE,self.scl_t
+        return dIb, dg, dE, self.scl_t
 
     def convert_I(self, I0):
         scl_v = self.HHModel.scl_v
