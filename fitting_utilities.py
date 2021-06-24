@@ -98,8 +98,8 @@ class FitND:
 
         # By default just fit the original HH gating variables
         if (X == None):
-            X = [self.HHModel.m,self.HHModel.h,self.HHModel.n]
-            labels = ['m','h','n']
+            X = [self.HHModel.m, self.HHModel.h, self.HHModel.n]
+            labels = ['m', 'h', 'n']
         elif (labels == None):
             labels = [] * len(X) # put empty labels if none provided
         
