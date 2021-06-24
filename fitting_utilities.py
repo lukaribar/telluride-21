@@ -229,9 +229,7 @@ class FitND:
         
         # Find the bias currents and quantize
         Ib = self.convert_weights_to_Ib(weights) / self.scl_t
-        dIb = np.round(Ib*1024/self.I_master)
-
-        dg = []
+        dIb = np.round(Ib * 1024 / self.I_master)
                 
         # Quantize conductances
         g_factor = (self.kappa / self.Vt) * (self.I_master / 1024)
