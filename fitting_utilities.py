@@ -58,7 +58,7 @@ class FitND:
         
         
         # Maximal coefficients
-        self.weightmax = 0
+        self.wmax = 0
         self.gmax = 0
         self.scl_t = 0
     
@@ -192,6 +192,32 @@ class FitND:
                 
         return weights
     
+    def update_scl_t(self, w, g):
+        w = np.asarray(w)
+        g = np.asarray(g)
+        
+        wmax = w.max()
+        gmax = g.max()
+        
+        # Find maximum coefficient
+        self.wmax = max(self.wmax, wmax)
+            
+        Imax = (1023 * self.I_master / 1024)
+        
+        # Find the scaling factor that maximizes coefficient resolution
+        C_HH = self.HHModel.C_m
+        scl_t = self.convert_weights_to_Ib(self.wmax) / Imax
+        self.scl_t = max(scl_t, self.scl_t)
+
+        # Find maximum conductance
+        self.gmax = max(gmax, self.gmax)
+
+        # Find the scaling factor that maximizes conductance resolution
+        scl_t = self.gmax / (Imax * self.kappa / self.Vt) * self.C_ND / C_HH
+        self.scl_t = max(scl_t, self.scl_t)
+
+        self.s = self.scl_t * C_HH / self.C_ND # max conductance / Iapp scaling
+    
     
     def quantize(self, weights, g, E):
         """
@@ -202,31 +228,10 @@ class FitND:
         This is done so as to jointly maximize the resolution of the conductances 
         and the coefficients.
         """
-        # Find maximum coefficient
-        weightmax = np.array(weights).max()
-        if (weightmax > self.weightmax):
-            self.weightmax = weightmax
-            
-        Imax = (1023*self.I_master/1024)
         
-        # Find the scaling factor that maximizes coefficient resolution
-        C_HH = 1e-6
-        scl_t = self.convert_weights_to_Ib(self.weightmax) / Imax
-        if (scl_t > self.scl_t):
-            self.scl_t = scl_t
-
-        # Find maximum conductance
-        gmax = np.array(g).max()
-        if (gmax > self.gmax):
-            self.gmax = gmax
-
-        # Find the scaling factor that maximizes conductance resolution
-        scl_t = self.gmax / (Imax * self.kappa / self.Vt) * self.C_ND / C_HH
-        if (scl_t > self.scl_t):
-            self.scl_t = scl_t
-
+        self.update_scl_t(weights, g)
+        
         # Recover the (quantized) rate currents from fitted coefficients
-        self.s = self.scl_t * C_HH / self.C_ND
         Ib = []
         dIb = []
         dg = []
@@ -257,7 +262,7 @@ class FitND:
                 print("The digital value is out of range:")
                 print(d)
         
-        return dIb,dg,dE,scl_t
+        return dIb,dg,dE,self.scl_t
 
     def convert_I(self, I0):
         scl_v = self.HHModel.scl_v
