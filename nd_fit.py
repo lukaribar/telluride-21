@@ -9,10 +9,10 @@ import matplotlib.pyplot as plt
 # Voltage scaling (important: assumes that HH is already written in SI units)
 scl_v = 3
 
-ND = NeuroDynModel()
+#ND = NeuroDynModel()
 HH = HHModel(scl_v=scl_v, SI_units=True)
 
-fit = FitND(ND, HH)
+fit = FitND(HH)
 
 #%% Fit gating variables individually and compute quantized parameters
 c = fit.fit(plot_alpha_beta=True)

@@ -11,12 +11,14 @@ from cb_models import NeuroDynModel
 
 class FitND:
     """
-    Class takes the physical constants from a NeuroDyn instance and provides
+    Class takes the physical constants from a NeuroDyn model and provides
     methods for setting the parameters of the NeuroDyn chip to fit a Hodgkin-
-    Huxley model
+    Huxley model that is passed as the argument.
     """
-    def __init__(self, NDModel, HHModel, vrange=[], I_voltage=150e-9, 
-                 I_master = 200e-9, initial_fit=False):
+    def __init__(self, HHModel, vrange=[], capacitance_scaling = 1, 
+                 I_voltage=150e-9, I_master = 200e-9, initial_fit=False):
+        NDModel = NeuroDynModel(I_voltage = I_voltage, I_master = I_master,
+                               capacitance_scaling = capacitance_scaling)
         self.NDModel = NDModel
         self.HHModel = HHModel
         
