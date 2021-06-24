@@ -3,7 +3,6 @@ Classes and methods for fitting NeuroDyn model
 Important: all fitting is done assuming that the rest potential 
 (or the threhsold potential) of the biophysical model is at 0V.
 """
-from cb_models import HHActivation, HHInactivation
 import numpy as np
 from scipy.optimize import nnls, minimize, Bounds
 import matplotlib.pyplot as plt
