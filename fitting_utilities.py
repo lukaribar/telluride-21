@@ -62,8 +62,8 @@ class FitND:
         Vrange = self.vrange
         Vb = self.Vb
         
-        A_alpha = np.zeros((np.size(Vrange),7))
-        A_beta = np.zeros((np.size(Vrange),7))
+        A_alpha = np.zeros((np.size(Vrange), 7))
+        A_beta = np.zeros((np.size(Vrange), 7))
         b_alpha = x.alpha(Vrange)
         b_beta = x.beta(Vrange)
         
@@ -78,8 +78,8 @@ class FitND:
                 A_alpha[:,i] = 1 / (1 + np.exp(-1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
                 A_beta[:,i] = 1 / (1 + np.exp(1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
         
-        weights_a = nnls(A_alpha,b_alpha)[0]
-        weights_b = nnls(A_beta,b_beta)[0]
+        weights_a = nnls(A_alpha, b_alpha)[0]
+        weights_b = nnls(A_beta, b_beta)[0]
         
         weights = [weights_a, weights_b]
         A = [A_alpha, A_beta]
@@ -123,49 +123,54 @@ class FitND:
         
         g = [120e-3,36e-3,0.3e-3]
         E = [120e-3,-12e-3,10.6e-3]
-        dIb, dg, dE = self.quantize(weights, g, E)
-        ND = NeuroDynModel(dg, dE, dIb, self.Vmean, self.I_voltage, self.I_master)    
-        X_ND = [ND.m, ND.h, ND.n]
+        dIb, _, _ = self.quantize(weights, g, E) 
         scl_t = self.scl_t
+        weights_quant = dIb * (self.I_master / 1024) / (self.C * self.Vt) * scl_t
         
         # PLOT
-        for weightsj, Aj, x, x_ND, label in zip(weights,A,X,X_ND,labels):
-            alpha = np.dot(Aj[0], weightsj[0])
-            beta = np.dot(Aj[1], weightsj[1])
+        for w, w_quant, Aj, x, label in zip(weights, weights_quant, A, X, labels):
+            alpha = np.dot(Aj[0], w[0])
+            beta = np.dot(Aj[1], w[1])
+            
+            alpha_quant = np.dot(Aj[0], w_quant[0])
+            beta_quant = np.dot(Aj[1], w_quant[1])
                 
             # Plot alpha and beta fits
             if (plot_alpha_beta):
                 plt.figure()
-                plt.title('α_'+label)
-                plt.plot(Vrange,x.alpha(Vrange),label='Original')
-                plt.plot(Vrange,alpha,label='Fit')
-                plt.plot(Vrange,x_ND.alpha(Vrange)*scl_t,label='Fit quantized')
+                plt.title('α_' + label)
+                plt.plot(Vrange, x.alpha(Vrange), label = 'Original')
+                plt.plot(Vrange, alpha, label = 'Fit')
+                plt.plot(Vrange, alpha_quant, label = 'Fit quantized')
                 plt.legend()
             
                 plt.figure()
                 plt.title('β_'+label)
-                plt.plot(Vrange,x.beta(Vrange),label='Original')
-                plt.plot(Vrange,beta,label='Fit')
-                plt.plot(Vrange,x_ND.beta(Vrange)*scl_t,label='Fit quantized')
+                plt.plot(Vrange, x.beta(Vrange), label = 'Original')
+                plt.plot(Vrange, beta, label = 'Fit')
+                plt.plot(Vrange, beta_quant, label = 'Fit quantized')
                 plt.legend()
             
             # Plot xinf and tau fits
             if (plot_inf_tau):
-                tau = 1/(alpha+beta)
-                inf = alpha/(alpha+beta)
+                tau = 1 / (alpha + beta)
+                inf = alpha / (alpha + beta)
+                
+                tau_quant = 1 / (alpha_quant + beta_quant)
+                inf_quant = alpha_quant / (alpha_quant + beta_quant)
     
                 plt.figure()
-                plt.title('τ_'+label)
-                plt.plot(Vrange,x.tau(Vrange),label='Original')
-                plt.plot(Vrange,tau,label='Fit')
-                plt.plot(Vrange,x_ND.tau(Vrange)/scl_t,label='Fit quantized')
+                plt.title('τ_' + label)
+                plt.plot(Vrange, x.tau(Vrange), label='Original')
+                plt.plot(Vrange, tau, label = 'Fit')
+                plt.plot(Vrange, tau_quant, label ='Fit quantized')
                 plt.legend()
         
                 plt.figure()
-                plt.title(label+'_∞')
-                plt.plot(Vrange,x.inf(Vrange),label='Original')
-                plt.plot(Vrange,inf,label='Fit')
-                plt.plot(Vrange,x_ND.inf(Vrange),label='Fit quantized')
+                plt.title(label + '_∞')
+                plt.plot(Vrange, x.inf(Vrange), label = 'Original')
+                plt.plot(Vrange, inf, label = 'Fit')
+                plt.plot(Vrange,inf_quant,label = 'Fit quantized')
                 plt.legend()
                 
         return weights
