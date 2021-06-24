@@ -51,7 +51,7 @@ class FitND:
         self.Vb = NDModel.get_Vb() + self.Vmean
         
         # Maximal coefficients
-        self.cmax = 0
+        self.weightmax = 0
         self.gmax = 0
         self.scl_t = 0
     
@@ -78,10 +78,15 @@ class FitND:
                 A_alpha[:,i] = 1 / (1 + np.exp(-1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
                 A_beta[:,i] = 1 / (1 + np.exp(1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
         
-        c_a = nnls(A_alpha,b_alpha)[0]
-        c_b = nnls(A_beta,b_beta)[0]
+        weights_a = nnls(A_alpha,b_alpha)[0]
+        weights_b = nnls(A_beta,b_beta)[0]
     
-        return c_a, c_b, A_alpha, A_beta
+        return weights_a, weights_b, A_alpha, A_beta
+    
+    def convert_weights_to_Ib(self, weights):
+        weights = np.asarray(weights)
+        Ib = weights * self.C * self.Vt / self.scl_t
+        return Ib
     
     
     # def fitHH(self, plot_alpha_beta = False, plot_inf_tau = False):
@@ -110,7 +115,7 @@ class FitND:
         into currents.
         """
         Vrange = self.vrange
-        c = []
+        weights = []
         A = []
         
         # By default just fit the original HH gating variables
@@ -122,21 +127,21 @@ class FitND:
         
         # Fit the variables and plot results
         for x in X:
-            c_a,c_b,A_alpha,A_beta = self.fit_gating_variable(x)
-            c.append([c_a, c_b])
+            weights_a, weights_b, A_alpha, A_beta = self.fit_gating_variable(x)
+            weights.append([weights_a, weights_b])
             A.append([A_alpha, A_beta])
         
         # Calculate quantized plots
         g = [120e-3,36e-3,0.3e-3]
         E = [120e-3,-12e-3,10.6e-3]
-        dIb,dg,dE,scl_t = self.quantize(c, g, E)
+        dIb, dg, dE, scl_t = self.quantize(weights, g, E)
         ND = NeuroDynModel(dg, dE, dIb, self.Vmean, self.I_voltage, self.I_master)    
         X_ND = [ND.m, ND.h, ND.n]
         
         # PLOT
-        for cj, Aj, x, x_ND, label in zip(c,A,X,X_ND,labels):
-            alpha = np.dot(Aj[0],cj[0])
-            beta = np.dot(Aj[1],cj[1])
+        for weightsj, Aj, x, x_ND, label in zip(weights,A,X,X_ND,labels):
+            alpha = np.dot(Aj[0], weightsj[0])
+            beta = np.dot(Aj[1], weightsj[1])
                 
             # Plot alpha and beta fits
             if (plot_alpha_beta):
@@ -173,10 +178,10 @@ class FitND:
                 plt.plot(Vrange,x_ND.inf(Vrange),label='Fit quantized')
                 plt.legend()
                 
-        return c
+        return weights
     
     
-    def quantize(self,c,g,E):
+    def quantize(self, weights, g, E):
         """
         Returns quantized sigmoid basis functions coefficients after transformation
         of the coefficients (c) into quantizated currents (dIb). 
@@ -186,15 +191,15 @@ class FitND:
         and the coefficients.
         """
         # Find maximum coefficient
-        cmax = np.array(c).max()
-        if (cmax > self.cmax):
-            self.cmax = cmax
+        weightmax = np.array(weights).max()
+        if (weightmax > self.weightmax):
+            self.weightmax = weightmax
             
         Imax = (1023*self.I_master/1024)
         
         # Find the scaling factor that maximizes coefficient resolution
         C_HH = 1e-6
-        scl_t = self.cmax / (Imax / (self.C*self.Vt))
+        scl_t = self.weightmax / (Imax / (self.C*self.Vt))
         if (scl_t > self.scl_t):
             self.scl_t = scl_t
 
@@ -213,10 +218,10 @@ class FitND:
         Ib = []
         dIb = []
         dg = []
-        for i in range(len(c)):
+        for i in range(len(weights)):
             # Exact (real numbers) current coefficients, before quantization
-            i_a = c[i][0] * self.C * self.Vt / self.scl_t 
-            i_b = c[i][1] * self.C * self.Vt / self.scl_t
+            i_a = weights[i][0] * self.C * self.Vt / self.scl_t 
+            i_b = weights[i][1] * self.C * self.Vt / self.scl_t
             Ib.append([i_a, i_b])
             # Quantize current coefficients
             di_a = np.round(i_a*1024/self.I_master)
