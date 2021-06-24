@@ -111,6 +111,7 @@ class FitND:
             weights.append(w_x)
             A.append(A_x)
         
+        # Find the quantized fit
         g = [120e-3,36e-3,0.3e-3]
         E = [120e-3,-12e-3,10.6e-3]
         dIb, _, _ = self.quantize(weights, g, E) 
