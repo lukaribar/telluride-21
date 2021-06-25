@@ -168,9 +168,11 @@ class NeuroDynModel(NeuronalModel):
     """
     NeuroDyn model
     """
-    def __init__(self, dg = None, dErev=None, dIb = None, V_ref=0.9,
+    def __init__(self, dg = None, dErev = None, dIb = None, V_ref=0.9,
                  I_voltage = 150e-9, I_master = 200e-9, I_ref = 100e-9,
-                 capacitance_scaling = 1.0):
+                 capacitance_scaling = 1.0, digital_values = True):
+        self.digital_values = digital_values
+        
         # Number of states (needed for network class)
         self.x_len = 4
         
@@ -210,15 +212,26 @@ class NeuroDynModel(NeuronalModel):
         # Digital parameters
         self.dg = dg
         self.dErev = dErev
+        self.dIb = dIb 
         
         # Perturbation arrays for g and Erev, initialize at 1
         self.perturb_g = np.ones(dg.shape)
         self.perturb_Erev = np.ones(dErev.shape)
                 
         # Convert digital to physical
-        self.gna,self.gk,self.gl = self.convert_conductance(dg)
-        self.Ena,self.Ek,self.El = self.convert_potential(dErev)
-        
+        if (digital_values):
+            self.gna,self.gk,self.gl = self.convert_conductance(dg)
+            self.Ena,self.Ek,self.El = self.convert_potential(dErev)
+            Ib_m = self.convert_current(dIb[0])
+            Ib_h = self.convert_current(dIb[1])
+            Ib_n = self.convert_current(dIb[2])
+        else:
+            self.gna,self.gk,self.gl = dg
+            self.Ena,self.Ek,self.El = dErev
+            Ib_m = dIb[0]
+            Ib_h = dIb[1]
+            Ib_n = dIb[2]
+            
         # Gating variable coefficients
         self.p = 3
         self.q = 1
@@ -228,15 +241,9 @@ class NeuroDynModel(NeuronalModel):
         self.Vb = Vb
         
         # Construct gating variables
-        self.dIb = dIb            
-        
-        Ib_m = self.convert_current(dIb[0])
-        Ib_h = self.convert_current(dIb[1])
-        Ib_n = self.convert_current(dIb[2])
-        
-        self.m = NeuroDynActivation(Ib_m,self.kappa,self.C_gate,self.Vt,Vb)
-        self.h = NeuroDynInactivation(Ib_h,self.kappa,self.C_gate,self.Vt,Vb)
-        self.n = NeuroDynActivation(Ib_n,self.kappa,self.C_gate,self.Vt,Vb)
+        self.m = NeuroDynActivation(Ib_m, self.kappa, self.C_gate, self.Vt, Vb)
+        self.h = NeuroDynInactivation(Ib_h, self.kappa, self.C_gate, self.Vt, Vb)
+        self.n = NeuroDynActivation(Ib_n, self.kappa, self.C_gate, self.Vt, Vb)
             
     def convert_current(self, dI):
         # Factor for converting digital to physical I
@@ -331,8 +338,12 @@ class NeuroDynModel(NeuronalModel):
         self.perturb_Erev = 1 + sigma * np.random.randn(*self.dErev.shape)
         
         # Update g and Erev
-        self.gna,self.gk,self.gl = self.convert_conductance(self.dg)
-        self.Ena,self.Ek,self.El = self.convert_potential(self.dErev)
+        if (self.digital_values):
+            self.gna,self.gk,self.gl = self.convert_conductance(self.dg)
+            self.Ena,self.Ek,self.El = self.convert_potential(self.dErev)
+        else:
+            self.gna,self.gk,self.gl = self.dg * self.perturb_g
+            self.Ena,self.Ek,self.El = self.dErev * self.perturb_Erev
                 
         # Perturb voltage offsets?
         # Would add ~15mV sigma to each 'bias' voltage
