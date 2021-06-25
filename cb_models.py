@@ -168,11 +168,26 @@ class NeuroDynModel(NeuronalModel):
     """
     NeuroDyn model
     """
-    def __init__(self, dg=np.array([400, 160, 12]), dErev=np.array([450, -250, -150]),
-                 dIb=[], V_ref=0.9, I_voltage = 270e-9, I_master = 200e-9,
-                 I_ref = 100e-9, capacitance_scaling = 1.0):
+    def __init__(self, dg = None, dErev=None, dIb = None, V_ref=0.9,
+                 I_voltage = 150e-9, I_master = 200e-9, I_ref = 100e-9,
+                 capacitance_scaling = 1.0):
         # Number of states (needed for network class)
         self.x_len = 4
+        
+        if (dg is None):
+            dg = np.array([400, 160, 12])
+            
+        if (dErev is None):
+            dErev = np.array([450, -250, -150])
+        
+        if (dIb is None):
+            dIb_m = np.array([[0, 0, 120, 400, 800, 1023, 1023],
+                     [1023, 1023, 1023, 1023, 0, 0, 0]])
+            dIb_h = np.array([[237, 5, 7, 6, 0, 0, 0],
+                    [0, 0, 0, 0, 41, 25, 8]])
+            dIb_n = np.array([[0, 0, 0, 0, 80, 40, 250],
+                    [4, 0, 0, 10, 0, 0, 4]])
+            dIb = [dIb_m, dIb_h, dIb_n]
         
         self.V_ref = V_ref              # Unit V
         self.I_voltage = I_voltage      # Unit A
@@ -212,15 +227,7 @@ class NeuroDynModel(NeuronalModel):
         Vb = self.get_Vb()
         self.Vb = Vb
         
-        # Default to nominal NeuroDyn activation parameters
-        if (dIb == []):
-            dIb_m = np.array([[0, 0, 120, 400, 800, 1023, 1023],
-                     [1023, 1023, 1023, 1023, 0, 0, 0]])
-            dIb_h = np.array([[237, 5, 7, 6, 0, 0, 0],
-                    [0, 0, 0, 0, 41, 25, 8]])
-            dIb_n = np.array([[0, 0, 0, 0, 80, 40, 250],
-                    [4, 0, 0, 10, 0, 0, 4]])
-            dIb = [dIb_m, dIb_h, dIb_n]
+        # Construct gating variables
         self.dIb = dIb            
         
         Ib_m = self.convert_current(dIb[0])
