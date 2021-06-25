@@ -227,7 +227,7 @@ class NeuroDynModel(NeuronalModel):
             Ib_n = self.convert_current(dIb[2])
         else:
             self.gna,self.gk,self.gl = dg
-            self.Ena,self.Ek,self.El = dErev
+            self.Ena,self.Ek,self.El = dErev + V_ref
             Ib_m = dIb[0]
             Ib_h = dIb[1]
             Ib_n = dIb[2]

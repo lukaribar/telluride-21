@@ -230,7 +230,15 @@ class FitND:
                 print("Some digital values are out of range")
         
         return dIb, dg, dE
-
+    
+    def get_analog(self, weights, g, E):
+        Ib = self.get_Ib(weights)
+        g = np.asarray(g) / self.s
+        E = np.asarray(E) * self.HHModel.scl_v - self.Vmean
+        
+        return Ib, g, E
+        
+    
     def convert_I(self, I0):
         scl_v = self.HHModel.scl_v
         I = I0 * scl_v / self.s
