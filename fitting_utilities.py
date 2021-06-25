@@ -5,7 +5,7 @@ Important: all fitting is done assuming that the rest potential
 """
 
 import numpy as np
-from scipy.optimize import nnls, minimize, Bounds
+from scipy.optimize import nnls #, minimize, Bounds
 import matplotlib.pyplot as plt
 from cb_models import NeuroDynModel
 
