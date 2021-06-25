@@ -496,13 +496,20 @@ class AMPA(HHKinetics):
     Physiological values taken from Ermentrout et al. 2010, p. 161
     Note: Voltage values need to be shifted +65mV
     """
-    def __init__(self, Tmax = 1, Kp = 5, V_T = 2+65, ar = 1.1, ad = 0.19):
+    def __init__(self, Tmax = 1, Kp = 5, V_T = 2+65, ar = 1.1, ad = 0.19, 
+                 scl_v = 1, SI_units = False):
         self.Tmax = Tmax
-        self.Kp = Kp
-        self.V_T = V_T
+        self.Kp = Kp * scl_v
+        self.V_T = V_T * scl_v
         self.ar = ar        
         self.ad = ad
-
+        
+        if (SI_units):
+            self.ar *= 1e3
+            self.ad *= 1e3
+            self.Kp *= 1e-3
+            self.V_T *= 1e-3
+        
     def alpha(self, V):
         return self.ar * self.Tmax / (1 + np.exp(-(V - self.V_T) / self.Kp))
 
