@@ -166,6 +166,9 @@ class FitND:
                 
         return weights
     
+    def get_scl_t(self):
+        return (1 / self.scl_t)
+    
     def update_scl_t(self, w, g):
         w = np.asarray(w)
         g = np.asarray(g)
