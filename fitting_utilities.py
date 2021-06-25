@@ -101,7 +101,7 @@ class FitND:
             X = [self.HHModel.m, self.HHModel.h, self.HHModel.n]
             labels = ['m', 'h', 'n']
         elif (labels == None):
-            labels = [] * len(X) # put empty labels if none provided
+            labels = ['x' for el in X]
         
         # Fit the variables and plot results
         weights = []
@@ -125,7 +125,7 @@ class FitND:
             
             alpha_quant = np.dot(Aj[0], w_quant[0])
             beta_quant = np.dot(Aj[1], w_quant[1])
-                
+            
             # Plot alpha and beta fits
             if (plot_alpha_beta):
                 plt.figure()
