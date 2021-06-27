@@ -566,7 +566,6 @@ class NDSynapse(Synapse):
         # Initialize synapse parameters
         super().__init__(g, E, r)
         
-
 class NeuronalNetwork(NeuronalModel):
     """
     Neuronal network class (biophysical or neuromorphic)
@@ -621,7 +620,7 @@ class NeuronalNetwork(NeuronalModel):
             # Total current to neuron i
             Iext = I[i] - i_syn - i_gap
             
-            # Start and end indides for states of neuron i
+            # Start and end indices for states of neuron i
             i_start = i_x[i]
             i_end = i_x[i] + x_lens[i]
             

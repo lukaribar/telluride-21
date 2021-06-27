@@ -33,7 +33,7 @@ class FitND:
         
         # Vmean: mid-point of the middle (4th) sigmoid
         #   -> Set to middle of voltage range (or resting potential?)
-        self.Vmean = (HHModel.Ek+HHModel.Ena)/2
+        self.Vmean = (HHModel.Ek + HHModel.Ena) / 2
         
         # Update dictionary with physical constants from NeuroDyn model
         params = NDModel.get_pars()
