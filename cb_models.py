@@ -461,7 +461,9 @@ class ShortCircuit(NeuronalModel):
         self.neurons = neurons
         
         # Number of states
-        self.x_len = len(neurons)*3 + 1
+        x_lens = [neuron.x_len for neuron in neurons]
+        self.x_len = np.sum(x_lens) - len(neurons) + 1
+        #self.x_len = len(neurons)*3 + 1
                 
         # Find total capacitance
         self.C_m = 0
