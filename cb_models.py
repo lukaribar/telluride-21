@@ -168,7 +168,7 @@ class NeuroDynModel(NeuronalModel):
     """
     Model of a single NeuroDyn neuron.
     """
-    def __init__(self, dg = None, dErev = None, dIb = None, V_ref=0.9,
+    def __init__(self, dg = None, dErev = None, dIb = None, V_ref = 0.9,
                  I_voltage = 150e-9, I_master = 200e-9, I_ref = 100e-9,
                  capacitance_scaling = 1.0, digital_values = True):
         self.digital_values = digital_values
