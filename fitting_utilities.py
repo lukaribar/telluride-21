@@ -54,7 +54,7 @@ class FitND:
         # Ratio of membrane capacitors C_HH / C_ND
         C_HH = self.HHModel.C_m
         self.C_ratio = C_HH / self.C_ND
-    
+        
     def fit_gating_variable(self, x):
         """
         Fit a single gating variable using non-negative least squares
@@ -95,7 +95,22 @@ class FitND:
         Ib = w * self.C * self.Vt
         return Ib
     
-    def fit(self, X = None, labels = None, plot_alpha_beta = False,
+    def fitHH(self, plot_alpha_beta = False, plot_inf_tau = False):
+        """
+        Fit the parameters to the Hodgkin-Huxley model passed during
+        initialization
+        """
+        
+        # Update scl_t based on maximal conductances of the Hodgkin-Huxley model
+        hh = self.HHModel
+        self.update_scl_t(g = [hh.gna, hh.gk, hh.gl])
+        
+        X = [self.HHModel.m, self.HHModel.h, self.HHModel.n]
+        labels = ['m', 'h', 'n']
+        
+        return self.fit(X, labels, plot_alpha_beta, plot_inf_tau)
+    
+    def fit(self, X, labels = None, plot_alpha_beta = False,
             plot_inf_tau=False):
         """
         Fits a list of gating variables in X with names in labels list.
@@ -103,11 +118,7 @@ class FitND:
         """
         Vrange = self.vrange
 
-        # By default just fit the original HH gating variables
-        if (X == None):
-            X = [self.HHModel.m, self.HHModel.h, self.HHModel.n]
-            labels = ['m', 'h', 'n']
-        elif (labels == None):
+        if (labels == None):
             labels = ['x' for el in X]
         
         # Fit the variables and plot results
@@ -119,9 +130,7 @@ class FitND:
             A.append(A_x)
         
         # Find the quantized fit
-        g = [120e-3,36e-3,0.3e-3]
-        E = [120e-3,-12e-3,10.6e-3]
-        dIb, _, _ = self.quantize(weights, g, E) 
+        dIb = self.get_digital_weights(weights) 
         scl_t = self.scl_t
         weights_quant = dIb * (self.I_master / 1024) / (self.C * self.Vt) * scl_t
         
@@ -179,35 +188,36 @@ class FitND:
         """
         return (1 / self.scl_t)
     
-    def update_scl_t(self, w, g):
+    def update_scl_t(self, w = None, g = None):
         """
-        Update scl_t based on the input array of weights (w) and maximal
+        Update scl_t based on the input array of weights (w) and/or maximal
         conductances (g). scl_t is updated so that all weights and max
         conductances can be fitted within the NeuroDyn physical range.
         """
-        w = np.asarray(w)
-        g = np.asarray(g)
+        Imax = (1023 * self.I_master / 1024) # max current in the circuit
         
-        wmax = w.max()
-        gmax = g.max()
+        if w is not None:
+            w = np.asarray(w)
+            wmax = w.max()
         
-        # Find maximum coefficient
-        self.wmax = max(self.wmax, wmax)
+            # Find maximum coefficient
+            self.wmax = max(self.wmax, wmax)
             
-        Imax = (1023 * self.I_master / 1024)
+            # Find the scaling factor that maximizes coefficient resolution
+            scl_t = self.convert_w_to_Ib(self.wmax) / Imax
+            self.scl_t = max(scl_t, self.scl_t)
         
-        # Find the scaling factor that maximizes coefficient resolution
+        if g is not None:
+            g = np.asarray(g)
+            gmax = g.max()
+            
+            # Find maximum conductance
+            self.gmax = max(gmax, self.gmax)
         
-        scl_t = self.convert_w_to_Ib(self.wmax) / Imax
-        self.scl_t = max(scl_t, self.scl_t)
-
-        # Find maximum conductance
-        self.gmax = max(gmax, self.gmax)
-
-        # Find the scaling factor that maximizes conductance resolution
-        scl_t = self.gmax / (Imax * self.kappa / self.Vt) / self.C_ratio
-        self.scl_t = max(scl_t, self.scl_t)
-    
+            # Find the scaling factor that maximizes conductance resolution
+            scl_t = self.gmax / (Imax * self.kappa / self.Vt) / self.C_ratio
+            self.scl_t = max(scl_t, self.scl_t)
+        
     def get_Ib(self, weights):
         """
         Returns analog values for sigmoid bias currents.
@@ -215,47 +225,84 @@ class FitND:
         Ib = self.convert_w_to_Ib(weights) / self.scl_t
         return Ib
     
-    def quantize(self, weights, g, E):
+    def get_digital_weights(self, weights):
         """
-        Returns quantized sigmoid basis functions coefficients after transformation
-        of the spline weights into quantizated currents (dIb). 
-        Also returns quantized maximal conductances (dg) and reversal
-        potentials dE.
+        Returns digital sigmoid basis functions coefficients from the weights
+        obtained through fitting.
         """
-        
-        self.update_scl_t(weights, g)
+        self.update_scl_t(w = weights)
         
         # Find the bias currents and quantize
         Ib = self.get_Ib(weights)
         dIb = np.round(Ib * 1024 / self.I_master)
-                
+        
+        if not((abs(dIb) <= 1023).all()):
+            print("Some digital values are out of range")
+            
+        return dIb
+    
+    def get_digital_g(self, g):
+        """
+        Returns digital values for the maximal conductance parameters g.
+        """
+        g = np.asarray(g)
+        
+        self.update_scl_t(g = g)
+        
         # Quantize conductances
         g_factor = (self.kappa / self.Vt) * (self.I_master / 1024)
-        dg = np.round(np.array(g) / self.scl_t / self.C_ratio / g_factor)
+        dg = np.round(g / self.scl_t / self.C_ratio / g_factor)
+        
+        if not((abs(dg) <= 1023).all()):
+            print("Some digital values are out of range")
+        
+        return dg
+    
+    def get_digital_E(self, E):
+        """
+        Returns digital values for the reversal potentials E.
+        """
+        E = np.asarray(E)
         
         # Quantize reversal potentials
         E_factor = (self.I_voltage / 1024) * self.Res
         scl_v = self.HHModel.scl_v
-        dE = np.round((np.array(E)*scl_v - self.Vmean) / E_factor)
+        dE = np.round((E * scl_v - self.Vmean) / E_factor)
         
-        # Check if all digital values are in the range [0, 1023]
-        for d in dIb, dg, dE:
-            if not((abs(d) <= 1023).all()):
-                print("Some digital values are out of range")
+        if not((abs(dE) <= 1023).all()):
+            print("Some digital values are out of range")
         
-        return dIb, dg, dE
+        return dE
     
-    def get_analog(self, weights, g, E):
+    def get_analog_weights(self, weights):
         """
-        Get analog values for the sigmoid bias currents, maximal conductances
-        and reversal potentials.
+        Get analog current values for sigmoid biases corresponding to weights.
         """
+        self.update_scl_t(w = weights)
+        
         Ib = self.get_Ib(weights)
-        g = np.asarray(g) / self.scl_t / self.C_ratio
+        
+        return Ib
+    
+    def get_analog_g(self, g):
+        """
+        Get analog current values for maximal conductances.
+        """
+        g = np.asarray(g)
+        self.update_scl_t(g = g)
+        
+        g = g / self.scl_t / self.C_ratio
+        
+        return g
+    
+    def get_analog_E(self, E):
+        """
+        Get analog current values for reversal potentials.
+        """
         E = np.asarray(E) * self.HHModel.scl_v - self.Vmean
         
-        return Ib, g, E
-          
+        return E
+    
     def convert_I(self, I0):
         """
         Scale an input to a standard Hodgkin-Huxley model to a NeuroDyn input.
@@ -263,6 +310,49 @@ class FitND:
         scl_v = self.HHModel.scl_v
         I = I0 * scl_v / self.scl_t / self.C_ratio
         return I
+        
+    # def get_analog(self, weights, g, E):
+    #     """
+    #     Get analog values for the sigmoid bias currents, maximal conductances
+    #     and reversal potentials.
+    #     """
+    #     Ib = self.get_Ib(weights)
+    #     g = np.asarray(g) / self.scl_t / self.C_ratio
+    #     E = np.asarray(E) * self.HHModel.scl_v - self.Vmean
+        
+    #     return Ib, g, E
+          
+    # def quantize(self, weights, g, E):
+    #     """
+    #     Returns quantized sigmoid basis functions coefficients after transformation
+    #     of the spline weights into quantizated currents (dIb). 
+    #     Also returns quantized maximal conductances (dg) and reversal
+    #     potentials dE.
+    #     """
+        
+    #     self.update_scl_t(w = weights, g = g)
+        
+    #     # Find the bias currents and quantize
+    #     Ib = self.get_Ib(weights)
+    #     dIb = np.round(Ib * 1024 / self.I_master)
+                
+    #     # Quantize conductances
+    #     g_factor = (self.kappa / self.Vt) * (self.I_master / 1024)
+    #     dg = np.round(np.array(g) / self.scl_t / self.C_ratio / g_factor)
+        
+    #     # Quantize reversal potentials
+    #     E_factor = (self.I_voltage / 1024) * self.Res
+    #     scl_v = self.HHModel.scl_v
+    #     dE = np.round((np.array(E)*scl_v - self.Vmean) / E_factor)
+        
+    #     # Check if all digital values are in the range [0, 1023]
+    #     for d in dIb, dg, dE:
+    #         if not((abs(d) <= 1023).all()):
+    #             print("Some digital values are out of range")
+        
+    #     return dIb, dg, dE
+    
+
     
     # INITIAL FIT METHODS
         

@@ -15,10 +15,12 @@ HH = HHModel(scl_v=scl_v, SI_units=True)
 fit = FitND(HH)
 
 #%% Fit gating variables individually and compute quantized parameters
-c = fit.fit(plot_alpha_beta=True)
+c = fit.fitHH(plot_alpha_beta=True)
 g0 = [120e-3,36e-3,0.3e-3]
 E0 = [120e-3,-12e-3,10.6e-3]
-dIb,dg,dE = fit.quantize(c,g0,E0)
+dIb = fit.get_digital_weights(c)
+dg = fit.get_digital_g(g0)
+dE = fit.get_digital_E(E0)
 dIb[2][1] = dIb[2][1]*15 # This parameter is too small for some reason!!!
 
 #%% Calculate the NeuroDyn parameters and simulate
