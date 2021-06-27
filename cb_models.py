@@ -110,8 +110,8 @@ class HHActivation(HHKinetics):
         A = self.aA
         K = self.aK
         Vh = self.aVh
-        a =	np.zeros(np.size(V))
         V = np.asarray(V)
+        a =	np.zeros(V.shape)
         a[V != Vh] = A * (Vh - V[V != Vh]) / (exp((Vh - V[V != Vh]) / K) - 1)
         a[V == Vh] = A * K
         return a
