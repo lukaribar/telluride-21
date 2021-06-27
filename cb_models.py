@@ -348,10 +348,10 @@ class NeuroDynModel(NeuronalModel):
 
 class HHModel(NeuronalModel):
     """
-        Hodgkin-Huxley model 
+        Hodgkin-Huxley model of a single neuron.
     """    
-    def __init__(self, gna=120, gk=36, gl=0.3, Ena=120, Ek =-12, El =10.6,
-                 gates=[], scl_v=1, scl_t=1, SI_units=False):
+    def __init__(self, gna = 120, gk = 36, gl = 0.3, Ena = 120, Ek = -12,
+                 El = 10.6, gates = None, scl_v = 1, scl_t = 1, SI_units = False):
         # Number of states (needed for network class)
         self.x_len = 4
         
@@ -377,7 +377,7 @@ class HHModel(NeuronalModel):
             self.Ek *= 1e-3
             self.El *= 1e-3
         
-        if not gates:
+        if gates is None:
             # Default to nominal HH kinetics
             self.m = HHActivation(25*scl_v, 0.1*scl_t/scl_v, 10*scl_v, 0*scl_v,
                                   4*scl_t, 18*scl_v, SI_units)
@@ -386,7 +386,7 @@ class HHModel(NeuronalModel):
             self.n = HHActivation(10*scl_v, 0.01*scl_t/scl_v, 10*scl_v,
                                   0*scl_v, 0.125*scl_t, 80*scl_v, SI_units)
         else:
-            # We should perhaps scale the gates passed by the user as well
+            # Note: gates should be passed scaled if scl_v/scl_t != 1
             self.m = gates[0]
             self.h = gates[1]
             self.n = gates[2]
@@ -399,46 +399,48 @@ class HHModel(NeuronalModel):
         # Save the nominal parameters
         self.nominal = deepcopy(self)
 
-    def i_int(self,V, m, h, n):
-        return (self.gna*(m**self.p)*(h**self.q)*(V - self.Ena) +
-                self.gk*(n**self.r)*(V - self.Ek) + self.gl*(V - self.El))
+    def i_int(self, V, m, h, n):
+        return (self.gna * (m**self.p) * (h**self.q) * (V - self.Ena) +
+                self.gk * (n**self.r) * (V - self.Ek) + self.gl * (V - self.El))
 
-    def iNa_ss(self,V):
-        return self.gna*(self.m.inf(V)**self.p)*(self.h.inf(V)**self.q)*(V - self.Ena)
+    def iNa_ss(self, V):
+        return self.gna * (self.m.inf(V)**self.p) * (self.h.inf(V)**self.q) * (V - self.Ena)
 
-    def iK_ss(self,V):
-        return self.gk*(self.n.inf(V)**self.r)*(V - self.Ek)    
+    def iK_ss(self, V):
+        return self.gk * (self.n.inf(V)**self.r) * (V - self.Ek)    
 
-    def iL_ss(self,V):
-        return self.gl*(V - self.El)
+    def iL_ss(self, V):
+        return self.gl * (V - self.El)
 
     def vfield(self, x, I):
         V, m, h, n = x
         
-        # Question: should we scale external current?
-        dV = (-self.i_int(V, m, h, n) + I*self.scl_v*self.scl_t)/self.C_m
-        dm = self.m.vfield(m,V)
-        dh = self.h.vfield(h,V)
-        dn = self.n.vfield(n,V)
+        # Scale external current
+        I = I * self.scl_v * self.scl_t
+        
+        dV = (-self.i_int(V, m, h, n) + I) / self.C_m
+        dm = self.m.vfield(m, V)
+        dh = self.h.vfield(h, V)
+        dn = self.n.vfield(n, V)
         return [dV, dm, dh, dn]
         
-    def perturb(self, sigma=0.15):
+    def perturb(self, sigma = 0.15):
         nom = self.nominal
         
         # Pertrub exponents
-        self.p = nom.p + 0.2*np.random.randn()
-        self.q = nom.q + 0.1*np.random.randn()
-        self.r = nom.r + 0.2*np.random.randn()
+        self.p = nom.p + 0.2 * np.random.randn()
+        self.q = nom.q + 0.1 * np.random.randn()
+        self.r = nom.r + 0.2 * np.random.randn()
         
         # Perturb maximal conductances
-        self.gna = nom.gna * (1 + sigma*np.random.randn())
-        self.gk = nom.gk * (1 + sigma*np.random.randn())
-        self.gl = nom.gl * (1 + sigma*np.random.randn())
+        self.gna = nom.gna * (1 + sigma * np.random.randn())
+        self.gk = nom.gk * (1 + sigma * np.random.randn())
+        self.gl = nom.gl * (1 + sigma * np.random.randn())
         
         # Perturb reversal potential
-        self.Ena = nom.Ena * (1 + sigma*np.random.randn())
-        self.Ek = nom.Ek * (1 + sigma*np.random.randn())
-        self.El = nom.El * (1 + sigma*np.random.randn())
+        self.Ena = nom.Ena * (1 + sigma * np.random.randn())
+        self.Ek = nom.Ek * (1 + sigma * np.random.randn())
+        self.El = nom.El * (1 + sigma * np.random.randn())
         
         # Perturb alpha/beta rates
         gates = [self.m, self.h, self.n]
