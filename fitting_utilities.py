@@ -111,7 +111,7 @@ class FitND:
         return self.fit(X, labels, plot_alpha_beta, plot_inf_tau)
     
     def fit(self, X, labels = None, plot_alpha_beta = False,
-            plot_inf_tau=False):
+            plot_inf_tau = False):
         """
         Fits a list of gating variables in X with names in labels list.
         Returns a list of sigmoid basis functions weights.
