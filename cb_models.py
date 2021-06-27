@@ -465,7 +465,7 @@ class ShortCircuit(NeuronalModel):
                 
         # Find total capacitance
         self.C_m = 0
-        for j,neuron in enumerate(neurons):
+        for j, neuron in enumerate(neurons):
             self.C_m += neuron.C_m
             
     def vfield(self, x, I):        
