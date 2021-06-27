@@ -51,17 +51,17 @@ class NeuroDynRate:
         return I     
     
     def perturb(self, sigma = 0.15):
-        self.perturbations = (1 + sigma*np.random.randn(7))
+        self.perturbations = (1 + sigma * np.random.randn(7))
         
 class NeuroDynActivation(HHKinetics):
     """
     NeuroDyn-type activation gating variable kinetics.
     """
-    def __init__(self,Ib,kappa,C,Vt,Vb):
+    def __init__(self, Ib, kappa, C, Vt, Vb):
         self.C = C
         self.Vt = Vt    
-        self.alpharate = NeuroDynRate(Ib[0],kappa,Vt,Vb,1)
-        self.betarate = NeuroDynRate(Ib[1],kappa,Vt,Vb,-1) 
+        self.alpharate = NeuroDynRate(Ib[0], kappa, Vt, Vb, 1)
+        self.betarate = NeuroDynRate(Ib[1], kappa, Vt, Vb, -1) 
     
     def alpha(self,V):
         return self.alpharate.I_rate(V) / (self.C * self.Vt)
@@ -73,11 +73,11 @@ class NeuroDynInactivation(HHKinetics):
     """
     NeuroDyn-type inactivation gating variable kinetics.
     """
-    def __init__(self,Ib,kappa,C,Vt,Vb):
+    def __init__(self, Ib, kappa, C, Vt, Vb):
         self.C = C
         self.Vt = Vt
-        self.alpharate = NeuroDynRate(Ib[0],kappa,Vt,Vb,-1) 
-        self.betarate = NeuroDynRate(Ib[1],kappa,Vt,Vb,1) 
+        self.alpharate = NeuroDynRate(Ib[0], kappa, Vt, Vb, -1) 
+        self.betarate = NeuroDynRate(Ib[1], kappa, Vt, Vb, 1) 
     
     def alpha(self,V):
         return self.alpharate.I_rate(V) / (self.C * self.Vt)
