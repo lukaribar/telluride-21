@@ -74,17 +74,17 @@ class FitND:
                 A_alpha[:,i] = 1 / (1 + np.exp(-1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
                 A_beta[:,i] = 1 / (1 + np.exp(1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
         
-        weights_a = nnls(A_alpha, b_alpha)[0]
-        weights_b = nnls(A_beta, b_beta)[0]
+        w_a = nnls(A_alpha, b_alpha)[0]
+        w_b = nnls(A_beta, b_beta)[0]
         
-        weights = [weights_a, weights_b]
+        w = [w_a, w_b]
         A = [A_alpha, A_beta]
         
-        return weights, A
+        return w, A
     
-    def convert_weights_to_Ib(self, weights):
-        weights = np.asarray(weights)
-        Ib = weights * self.C * self.Vt
+    def convert_w_to_Ib(self, w):
+        w = np.asarray(w)
+        Ib = w * self.C * self.Vt
         return Ib
     
     def fit(self, X = None, labels = None, plot_alpha_beta = False,
@@ -183,7 +183,7 @@ class FitND:
         
         # Find the scaling factor that maximizes coefficient resolution
         C_HH = self.HHModel.C_m
-        scl_t = self.convert_weights_to_Ib(self.wmax) / Imax
+        scl_t = self.convert_w_to_Ib(self.wmax) / Imax
         self.scl_t = max(scl_t, self.scl_t)
 
         # Find maximum conductance
@@ -196,7 +196,7 @@ class FitND:
         self.s = self.scl_t * C_HH / self.C_ND # max conductance / Iapp scaling
     
     def get_Ib(self, weights):
-        Ib = self.convert_weights_to_Ib(weights) / self.scl_t
+        Ib = self.convert_w_to_Ib(weights) / self.scl_t
         return Ib
     
     def quantize(self, weights, g, E):
