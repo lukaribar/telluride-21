@@ -196,8 +196,6 @@ class FitND:
         # Find the scaling factor that maximizes conductance resolution
         scl_t = self.gmax / (Imax * self.kappa / self.Vt) / self.C_ratio
         self.scl_t = max(scl_t, self.scl_t)
-
-        self.s = self.scl_t * self.C_ratio # max conductance / Iapp scaling
     
     def get_Ib(self, weights):
         Ib = self.convert_w_to_Ib(weights) / self.scl_t
@@ -221,7 +219,7 @@ class FitND:
                 
         # Quantize conductances
         g_factor = (self.kappa / self.Vt) * (self.I_master / 1024)
-        dg = np.round(np.array(g) / self.s / g_factor)
+        dg = np.round(np.array(g) / self.scl_t / self.C_ratio / g_factor)
         
         # Quantize reversal potentials
         E_factor = (self.I_voltage / 1024) * self.Res
@@ -237,14 +235,14 @@ class FitND:
     
     def get_analog(self, weights, g, E):
         Ib = self.get_Ib(weights)
-        g = np.asarray(g) / self.s
+        g = np.asarray(g) / self.scl_t / self.C_ratio
         E = np.asarray(E) * self.HHModel.scl_v - self.Vmean
         
         return Ib, g, E
           
     def convert_I(self, I0):
         scl_v = self.HHModel.scl_v
-        I = I0 * scl_v / self.s
+        I = I0 * scl_v / self.scl_t / self.C_ratio
         return I
     
     # INITIAL FIT METHODS
