@@ -310,50 +310,7 @@ class FitND:
         scl_v = self.HHModel.scl_v
         I = I0 * scl_v / self.scl_t / self.C_ratio
         return I
-        
-    # def get_analog(self, weights, g, E):
-    #     """
-    #     Get analog values for the sigmoid bias currents, maximal conductances
-    #     and reversal potentials.
-    #     """
-    #     Ib = self.get_Ib(weights)
-    #     g = np.asarray(g) / self.scl_t / self.C_ratio
-    #     E = np.asarray(E) * self.HHModel.scl_v - self.Vmean
-        
-    #     return Ib, g, E
-          
-    # def quantize(self, weights, g, E):
-    #     """
-    #     Returns quantized sigmoid basis functions coefficients after transformation
-    #     of the spline weights into quantizated currents (dIb). 
-    #     Also returns quantized maximal conductances (dg) and reversal
-    #     potentials dE.
-    #     """
-        
-    #     self.update_scl_t(w = weights, g = g)
-        
-    #     # Find the bias currents and quantize
-    #     Ib = self.get_Ib(weights)
-    #     dIb = np.round(Ib * 1024 / self.I_master)
-                
-    #     # Quantize conductances
-    #     g_factor = (self.kappa / self.Vt) * (self.I_master / 1024)
-    #     dg = np.round(np.array(g) / self.scl_t / self.C_ratio / g_factor)
-        
-    #     # Quantize reversal potentials
-    #     E_factor = (self.I_voltage / 1024) * self.Res
-    #     scl_v = self.HHModel.scl_v
-    #     dE = np.round((np.array(E)*scl_v - self.Vmean) / E_factor)
-        
-    #     # Check if all digital values are in the range [0, 1023]
-    #     for d in dIb, dg, dE:
-    #         if not((abs(d) <= 1023).all()):
-    #             print("Some digital values are out of range")
-        
-    #     return dIb, dg, dE
-    
-
-    
+            
     # INITIAL FIT METHODS
         
     # def I_rate(self,c,sign,Vb):
