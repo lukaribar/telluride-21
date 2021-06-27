@@ -219,18 +219,11 @@ class NeuroDynModel(NeuronalModel):
         self.perturb_Erev = np.ones(dErev.shape)
                 
         # Convert digital to physical values
-        if (digital_values):
-            self.gna, self.gk, self.gl = self.convert_conductance(dg)
-            self.Ena, self.Ek, self.El = self.convert_potential(dErev)
-            Ib_m = self.convert_current(dIb[0])
-            Ib_h = self.convert_current(dIb[1])
-            Ib_n = self.convert_current(dIb[2])
-        else:
-            self.gna, self.gk, self.gl = dg
-            self.Ena, self.Ek, self.El = dErev + V_ref
-            Ib_m = dIb[0]
-            Ib_h = dIb[1]
-            Ib_n = dIb[2]
+        self.gna, self.gk, self.gl = self.convert_conductance(dg)
+        self.Ena, self.Ek, self.El = self.convert_potential(dErev)
+        Ib_m = self.convert_current(dIb[0])
+        Ib_h = self.convert_current(dIb[1])
+        Ib_n = self.convert_current(dIb[2])
             
         # Gating variable coefficients
         self.p = 3
@@ -247,17 +240,26 @@ class NeuroDynModel(NeuronalModel):
             
     def convert_current(self, dI):
         # Factor for converting digital to physical I
-        I_factor = self.I_master / 1024
+        if (self.digital_values):
+            I_factor = self.I_master / 1024
+        else:
+            I_factor = 1
         return dI * I_factor
     
     def convert_conductance(self, dg):
         # Factor for converting digital to physical g
-        g_factor = (self.kappa_lin / self.Vt) * (self.I_master / 1024)
+        if (self.digital_values):
+            g_factor = (self.kappa_lin / self.Vt) * (self.I_master / 1024)
+        else:
+            g_factor = 1
         return dg * g_factor * self.perturb_g
         
     def convert_potential(self, dErev):
         # Factor for converting digital to physical Erev
-        E_factor = (self.I_voltage / 1024) * self.Res
+        if (self.digital_values):
+            E_factor = (self.I_voltage / 1024) * self.Res
+        else:
+            E_factor = 1
         return dErev * E_factor * self.perturb_Erev + self.V_ref
     
     def update_dg(self, dg):
@@ -276,9 +278,9 @@ class NeuroDynModel(NeuronalModel):
         Ib_n = self.convert_current(dIb[2])
         
         Vb = self.Vb
-        self.m = NeuroDynActivation(Ib_m,self.kappa,self.C_gate,self.Vt,Vb)
-        self.h = NeuroDynInactivation(Ib_h,self.kappa,self.C_gate,self.Vt,Vb)
-        self.n = NeuroDynActivation(Ib_n,self.kappa,self.C_gate,self.Vt,Vb)
+        self.m = NeuroDynActivation(Ib_m, self.kappa, self.C_gate, self.Vt, Vb)
+        self.h = NeuroDynInactivation(Ib_h, self.kappa, self.C_gate, self.Vt, Vb)
+        self.n = NeuroDynActivation(Ib_n, self.kappa, self.C_gate, self.Vt, Vb)
     
     def get_pars(self):
         params = {
@@ -301,28 +303,28 @@ class NeuroDynModel(NeuronalModel):
     
     def resistor(self, g, V, linear=False):
         if (linear):
-            I = g*V
+            I = g * V
         else:
             k = self.kappa_lin
             Vt = self.Vt
-            I = 2*g*Vt/k*np.tanh(k*V / (2*Vt))
+            I = 2 * g * Vt /k * np.tanh(k * V / (2 * Vt))
         return I
     
     def i_int(self,V, m, h, n):
-        Ina = self.resistor(self.gna*(m**self.p)*(h**self.q), V - self.Ena)
-        Ik = self.resistor(self.gk*(n**self.r), V - self.Ek)
+        Ina = self.resistor(self.gna * (m**self.p) * (h**self.q), V - self.Ena)
+        Ik = self.resistor(self.gk * (n**self.r), V - self.Ek)
         Il = self.resistor(self.gl, V - self.El)
         return (Ina + Ik + Il)
     
     def vfield(self, x, I):
         V, m, h, n = x
-        dV = (-self.i_int(V, m, h, n) + I)/self.C_m
+        dV = (-self.i_int(V, m, h, n) + I) / self.C_m
         dm = self.m.vfield(m,V)
         dh = self.h.vfield(h,V)
         dn = self.n.vfield(n,V)
         return [dV, dm, dh, dn]
 
-    def perturb(self,sigma=0.15):
+    def perturb(self, sigma = 0.15):
         # Pertrub exponents
         self.p = 3 + 0.2*np.random.randn()
         self.q = 1 + 0.1*np.random.randn()
@@ -338,12 +340,8 @@ class NeuroDynModel(NeuronalModel):
         self.perturb_Erev = 1 + sigma * np.random.randn(*self.dErev.shape)
         
         # Update g and Erev
-        if (self.digital_values):
-            self.gna,self.gk,self.gl = self.convert_conductance(self.dg)
-            self.Ena,self.Ek,self.El = self.convert_potential(self.dErev)
-        else:
-            self.gna,self.gk,self.gl = self.dg * self.perturb_g
-            self.Ena,self.Ek,self.El = self.dErev * self.perturb_Erev
+        self.gna,self.gk,self.gl = self.convert_conductance(self.dg)
+        self.Ena,self.Ek,self.El = self.convert_potential(self.dErev)
                 
         # Perturb voltage offsets?
         # Would add ~15mV sigma to each 'bias' voltage
