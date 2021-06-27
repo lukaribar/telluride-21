@@ -642,54 +642,75 @@ class NeuronalNetwork(NeuronalModel):
 class NeuroDynBoard(NeuronalNetwork):
     """
     Network class representing a single NeuroDyn board consisting of four
-    NeuroDyn neurons with full synaptic connectivity between them. Neurons can
-    also be short-circuited when creating an object.
-    
+    NeuroDyn neurons with full synaptic connectivity between them. Additional
+    resistive (gap junction) connections can also be defined.
     """
     
-    def __init__(self, neurons = None, syns = None, short_circuit = False):
+    def __init__(self):
         
         # Define neuronal models
-        if (neurons is None):
-            neurons = [NeuroDynModel() for i in range(4)]
+        neurons = [NeuroDynModel() for i in range(4)]
         
         # Define synapses
-        if (syns is None):
-            syns = [[Synapse() if (i != j) else None for j in range (4)] for i in range (4)]
+        syns = [[Synapse() if (i != j) else None for j in range (4)] for i in range (4)]
         
-        self.board_neurons = neurons
-        self.board_syns = syns
+        # Set gap junction matrix to zeros
+        gap = np.zeros((4, 4))
         
-        if not(short_circuit):
-            super().__init__(neurons, syns = syns)
-        else:
-            # Define short circuit neurons
-            sc_neurons = [ShortCircuit(neurons[i*2:(i+1)*2]) for i in range(2)]
-            
-            # Determine short circuit synapses
-            sc_syns = [[None for j in range(2)] for i in range(2)]
-            sc_syns[0][0] = [syns[0][1], syns[1][0]]
-            sc_syns[0][1] = syns[0][2:] + syns[1][2:]
-            sc_syns[1][0] = syns[2][0:2] + syns[3][0:2]
-            sc_syns[1][1] = [syns[2][3], syns[3][2]]
-            
-            super().__init__(sc_neurons, syns = sc_syns)
+        super().__init__(neurons, syns = syns, gap = gap)
         
     def get_neuron(self, i):
-        return self.board_neurons[i]
+        return self.neurons[i]
     
     def get_syn(self, i, j):
-        return self.board_syns[i][j]
+        return self.syns[i][j]
     
+    def set_gap(self, g, i, j):
+        self.gap[i][j] = g
+        self.gap[j][i] = g
     
+class NeuroCube(NeuronalNetwork):
+    """
+    Network class for a parallel interconnection of four NeuroDyn boards.
+    """
+    def __init__(self):
+        boards = [NeuroDynBoard() for i in range(4)]
+        self.boards = boards
+        
+        # Group all neurons
+        neurons = [neuron for board in boards for neuron in board.neurons]
+        
+        # Group all synapses
+        syns = [[None for j in range(16)] for i in range(16)]
+        for i in range(4):
+            syns[i*4:(i+1)*4][i*4:(i+1)*4] = boards[i].syns
+            
+        # Group all gap junctions
+        gap = np.zeros((16, 16))
+        for i in range(4):
+            gap[i*4:(i+1)*4][i*4:(i+1)*4] = boards[i].gap
+        
+        # Now repeat backward so that gap matrix of each board references
+        # to the accumulated gap matrix
+        for i in range(4):
+            boards[i].gap = gap[i*4:(i+1)*4][i*4:(i+1)*4]
+        
+        super().__init__(neurons, syns = syns, gap = gap)
     
+    def connect_boards(self, board_i, board_j, neuron_no, g):
+        """
+        Set the conductance to g of the connection between boards indexed by
+        board_i and board_j, through the neuron indexed neuron_no.
+        """
+        
+        neuron_i = board_i*4 + neuron_no
+        neuron_j = board_j*4 + neuron_no
+        
+        self.gap[neuron_i][neuron_j] = g
+        self.gap[neuron_j][neuron_i] = g
     
-    
-    
-    
-    
-    
-    
+    def get_board(self, i):
+        return self.boards[i]
     
     
     
