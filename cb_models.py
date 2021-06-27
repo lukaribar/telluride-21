@@ -23,13 +23,13 @@ class HHKinetics(ABC):
     def tau(self, V):
         return 1 / (self.alpha(V) + self.beta(V))
 
-    def vfield(self,x,V,Vpos=[]):
-        if Vpos == []:   
+    def vfield(self, x, V, Vpost = None):
+        if Vpost is None:   
             # Intrinsic kinetics vector field
-            return self.alpha(V)*(1 - x) - self.beta(V)*x
+            return self.alpha(V) * (1 - x) - self.beta(V) * x
         else:
             # Synaptic kinetics vector field
-            return self.alpha(V)*(1 - x) - self.beta(Vpos)*x
+            return self.alpha(V) * (1 - x) - self.beta(Vpost) * x
 
 class NeuroDynRate:
     """
