@@ -50,6 +50,10 @@ class FitND:
         self.wmax = 0
         self.gmax = 0
         self.scl_t = 0
+        
+        # Ratio of membrane capacitors C_HH / C_ND
+        C_HH = self.HHModel.C_m
+        self.C_ratio = C_HH / self.C_ND
     
     def fit_gating_variable(self, x):
         """
@@ -182,7 +186,7 @@ class FitND:
         Imax = (1023 * self.I_master / 1024)
         
         # Find the scaling factor that maximizes coefficient resolution
-        C_HH = self.HHModel.C_m
+        
         scl_t = self.convert_w_to_Ib(self.wmax) / Imax
         self.scl_t = max(scl_t, self.scl_t)
 
@@ -190,10 +194,10 @@ class FitND:
         self.gmax = max(gmax, self.gmax)
 
         # Find the scaling factor that maximizes conductance resolution
-        scl_t = self.gmax / (Imax * self.kappa / self.Vt) * self.C_ND / C_HH
+        scl_t = self.gmax / (Imax * self.kappa / self.Vt) / self.C_ratio
         self.scl_t = max(scl_t, self.scl_t)
 
-        self.s = self.scl_t * C_HH / self.C_ND # max conductance / Iapp scaling
+        self.s = self.scl_t * self.C_ratio # max conductance / Iapp scaling
     
     def get_Ib(self, weights):
         Ib = self.convert_w_to_Ib(weights) / self.scl_t
