@@ -711,24 +711,3 @@ class NeuroCube(NeuronalNetwork):
     
     def get_board(self, i):
         return self.boards[i]
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
