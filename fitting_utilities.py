@@ -91,7 +91,7 @@ class FitND:
             plot_inf_tau=False):
         """
         Fits a list of gating variables in X.
-        Returns sigmoid basis functions coefficients c prior to transformation
+        Returns sigmoid basis functions weights prior to transformation
         into currents.
         """
         Vrange = self.vrange
@@ -237,8 +237,7 @@ class FitND:
         E = np.asarray(E) * self.HHModel.scl_v - self.Vmean
         
         return Ib, g, E
-        
-    
+          
     def convert_I(self, I0):
         scl_v = self.HHModel.scl_v
         I = I0 * scl_v / self.s
