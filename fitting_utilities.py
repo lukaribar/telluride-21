@@ -87,6 +87,10 @@ class FitND:
         return w, A
     
     def convert_w_to_Ib(self, w):
+        """
+        Convert spline weights (units: 1/s) into appropriate NeuroDyn current
+        biases (units: A)
+        """
         w = np.asarray(w)
         Ib = w * self.C * self.Vt
         return Ib
@@ -94,9 +98,8 @@ class FitND:
     def fit(self, X = None, labels = None, plot_alpha_beta = False,
             plot_inf_tau=False):
         """
-        Fits a list of gating variables in X.
-        Returns sigmoid basis functions weights prior to transformation
-        into currents.
+        Fits a list of gating variables in X with names in labels list.
+        Returns a list of sigmoid basis functions weights.
         """
         Vrange = self.vrange
 
@@ -171,9 +174,17 @@ class FitND:
         return weights
     
     def get_scl_t(self):
+        """
+        Return scl_t variable that can be passed to a HHModel.
+        """
         return (1 / self.scl_t)
     
     def update_scl_t(self, w, g):
+        """
+        Update scl_t based on the input array of weights (w) and maximal
+        conductances (g). scl_t is updated so that all weights and max
+        conductances can be fitted within the NeuroDyn physical range.
+        """
         w = np.asarray(w)
         g = np.asarray(g)
         
@@ -198,17 +209,18 @@ class FitND:
         self.scl_t = max(scl_t, self.scl_t)
     
     def get_Ib(self, weights):
+        """
+        Returns analog values for sigmoid bias currents.
+        """
         Ib = self.convert_w_to_Ib(weights) / self.scl_t
         return Ib
     
     def quantize(self, weights, g, E):
         """
         Returns quantized sigmoid basis functions coefficients after transformation
-        of the coefficients (c) into quantizated currents (dIb). 
-        Also returns quantized maximal conductances (dg).
-        To perform quantization, a suitable time scaling has to be found.
-        This is done so as to jointly maximize the resolution of the conductances 
-        and the coefficients.
+        of the spline weights into quantizated currents (dIb). 
+        Also returns quantized maximal conductances (dg) and reversal
+        potentials dE.
         """
         
         self.update_scl_t(weights, g)
@@ -234,6 +246,10 @@ class FitND:
         return dIb, dg, dE
     
     def get_analog(self, weights, g, E):
+        """
+        Get analog values for the sigmoid bias currents, maximal conductances
+        and reversal potentials.
+        """
         Ib = self.get_Ib(weights)
         g = np.asarray(g) / self.scl_t / self.C_ratio
         E = np.asarray(E) * self.HHModel.scl_v - self.Vmean
@@ -241,6 +257,9 @@ class FitND:
         return Ib, g, E
           
     def convert_I(self, I0):
+        """
+        Scale an input to a standard Hodgkin-Huxley model to a NeuroDyn input.
+        """
         scl_v = self.HHModel.scl_v
         I = I0 * scl_v / self.scl_t / self.C_ratio
         return I
