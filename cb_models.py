@@ -463,7 +463,6 @@ class ShortCircuit(NeuronalModel):
         # Number of states
         x_lens = [neuron.x_len for neuron in neurons]
         self.x_len = np.sum(x_lens) - len(neurons) + 1
-        #self.x_len = len(neurons)*3 + 1
                 
         # Find total capacitance
         self.C_m = 0
@@ -580,7 +579,7 @@ class NeuronalNetwork(NeuronalModel):
             - otherwise, syns[i][j] is a list of synapse objects from neuron j
             to i
     """
-    def __init__(self, neurons, gap = None, syns= None):
+    def __init__(self, neurons, gap = None, syns = None):
         self.neurons = neurons
         self.gap = gap
         self.syns = syns
