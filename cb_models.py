@@ -116,7 +116,7 @@ class HHActivation(HHKinetics):
         a[V == Vh] = A * K
         return a
 
-    def beta(self,V):
+    def beta(self, V):
         return self.bA * exp((self.bVh - V) / self.bK)
 
 class HHInactivation(HHKinetics):
@@ -140,15 +140,15 @@ class HHInactivation(HHKinetics):
             self.bA *= 1e3
             self.bK *= 1e-3
 
-    def alpha(self,V):
+    def alpha(self, V):
         return self.aA * exp((self.aVh - V)/ self.aK)
 
-    def beta(self,V):
+    def beta(self, V):
         return self.bA / (exp((self.bVh - V) / self.bK) + 1)
 
 class NeuronalModel(ABC):
     """
-    Abstract class for neuronal models.
+    Abstract class for neuronal models implementing the simulate method.
     """
     @abstractmethod
     def vfield(self, x, I):
@@ -166,7 +166,7 @@ class NeuronalModel(ABC):
 
 class NeuroDynModel(NeuronalModel):
     """
-    NeuroDyn model
+    Model of a single NeuroDyn neuron.
     """
     def __init__(self, dg = None, dErev = None, dIb = None, V_ref=0.9,
                  I_voltage = 150e-9, I_master = 200e-9, I_ref = 100e-9,
@@ -218,16 +218,16 @@ class NeuroDynModel(NeuronalModel):
         self.perturb_g = np.ones(dg.shape)
         self.perturb_Erev = np.ones(dErev.shape)
                 
-        # Convert digital to physical
+        # Convert digital to physical values
         if (digital_values):
-            self.gna,self.gk,self.gl = self.convert_conductance(dg)
-            self.Ena,self.Ek,self.El = self.convert_potential(dErev)
+            self.gna, self.gk, self.gl = self.convert_conductance(dg)
+            self.Ena, self.Ek, self.El = self.convert_potential(dErev)
             Ib_m = self.convert_current(dIb[0])
             Ib_h = self.convert_current(dIb[1])
             Ib_n = self.convert_current(dIb[2])
         else:
-            self.gna,self.gk,self.gl = dg
-            self.Ena,self.Ek,self.El = dErev + V_ref
+            self.gna, self.gk, self.gl = dg
+            self.Ena, self.Ek, self.El = dErev + V_ref
             Ib_m = dIb[0]
             Ib_h = dIb[1]
             Ib_n = dIb[2]
