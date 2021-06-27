@@ -106,14 +106,14 @@ class HHActivation(HHKinetics):
             self.bA *= 1e3
             self.bK *= 1e-3
 
-    def alpha(self,V):
+    def alpha(self, V):
         A = self.aA
         K = self.aK
         Vh = self.aVh
         a =	np.zeros(np.size(V))
-        V = np.array(V)
-        a[V!=Vh] = A * (Vh - V[V!=Vh]) / (exp((Vh - V[V!=Vh]) / K) - 1)
-        a[V==Vh] = A*K
+        V = np.asarray(V)
+        a[V != Vh] = A * (Vh - V[V != Vh]) / (exp((Vh - V[V != Vh]) / K) - 1)
+        a[V == Vh] = A * K
         return a
 
     def beta(self,V):
