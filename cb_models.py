@@ -239,6 +239,8 @@ class NeuroDynModel(NeuronalModel):
         self.n = NeuroDynActivation(Ib_n, self.kappa, self.C_gate, self.Vt, Vb)
             
     def convert_current(self, dI):
+        dI = np.asarray(dI)
+        
         # Factor for converting digital to physical I
         if (self.digital_values):
             I_factor = self.I_master / 1024
@@ -247,6 +249,8 @@ class NeuroDynModel(NeuronalModel):
         return dI * I_factor
     
     def convert_conductance(self, dg):
+        dg = np.asarray(dg)
+        
         # Factor for converting digital to physical g
         if (self.digital_values):
             g_factor = (self.kappa_lin / self.Vt) * (self.I_master / 1024)
@@ -255,6 +259,8 @@ class NeuroDynModel(NeuronalModel):
         return dg * g_factor * self.perturb_g
         
     def convert_potential(self, dErev):
+        dErev = np.asarray(dErev)
+        
         # Factor for converting digital to physical Erev
         if (self.digital_values):
             E_factor = (self.I_voltage / 1024) * self.Res
@@ -263,14 +269,17 @@ class NeuroDynModel(NeuronalModel):
         return dErev * E_factor * self.perturb_Erev + self.V_ref
     
     def update_dg(self, dg):
+        dg = np.asarray(dg)
         self.dg = dg
         self.gna,self.gk,self.gl = self.convert_conductance(dg)
     
     def update_dErev(self, dErev):
+        dErev = np.asarray(dErev)
         self.dErev = dErev
         self.Ena,self.Ek,self.El = self.convert_potential(dErev)
         
     def update_dIb(self, dIb):
+        dIb = np.asarray(dIb)
         self.dIb = dIb
         
         Ib_m = self.convert_current(dIb[0])
