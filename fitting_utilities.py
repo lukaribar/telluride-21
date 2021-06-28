@@ -130,7 +130,7 @@ class FitND:
             A.append(A_x)
         
         # Find the quantized fit
-        dIb = self.get_digital_weights(weights) 
+        dIb = self.get_digital_Ib(weights) 
         scl_t = self.scl_t
         weights_quant = dIb * (self.I_master / 1024) / (self.C * self.Vt) * scl_t
         
@@ -225,7 +225,7 @@ class FitND:
         Ib = self.convert_w_to_Ib(weights) / self.scl_t
         return Ib
     
-    def get_digital_weights(self, weights):
+    def get_digital_Ib(self, weights):
         """
         Returns digital sigmoid basis functions coefficients from the weights
         obtained through fitting.
@@ -274,7 +274,7 @@ class FitND:
         
         return dE
     
-    def get_analog_weights(self, weights):
+    def get_analog_Ib(self, weights):
         """
         Get analog current values for sigmoid biases corresponding to weights.
         """
