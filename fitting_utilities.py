@@ -111,7 +111,7 @@ class FitND:
         return self.fit(X, labels, plot_alpha_beta, plot_inf_tau)
     
     def fit(self, X, labels = None, plot_alpha_beta = False,
-            plot_inf_tau = False):
+            plot_inf_tau = False, update_scale = True):
         """
         Fits a list of gating variables in X with names in labels list.
         Returns a list of sigmoid basis functions weights.
@@ -130,7 +130,7 @@ class FitND:
             A.append(A_x)
         
         # Find the quantized fit
-        dIb = self.get_digital_Ib(weights) 
+        dIb = self.get_digital_Ib(weights, update_scale) 
         scl_t = self.scl_t
         weights_quant = dIb * (self.I_master / 1024) / (self.C * self.Vt) * scl_t
         
