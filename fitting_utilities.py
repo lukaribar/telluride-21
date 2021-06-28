@@ -225,12 +225,13 @@ class FitND:
         Ib = self.convert_w_to_Ib(weights) / self.scl_t
         return Ib
     
-    def get_digital_Ib(self, weights):
+    def get_digital_Ib(self, weights, update_scale = True):
         """
         Returns digital sigmoid basis functions coefficients from the weights
         obtained through fitting.
         """
-        self.update_scl_t(w = weights)
+        if update_scale:
+            self.update_scl_t(w = weights)
         
         # Find the bias currents and quantize
         Ib = self.get_Ib(weights)
@@ -241,13 +242,14 @@ class FitND:
             
         return dIb
     
-    def get_digital_g(self, g):
+    def get_digital_g(self, g, update_scale = True):
         """
         Returns digital values for the maximal conductance parameters g.
         """
         g = np.asarray(g)
         
-        self.update_scl_t(g = g)
+        if update_scale:
+            self.update_scl_t(g = g)
         
         # Quantize conductances
         g_factor = (self.kappa / self.Vt) * (self.I_master / 1024)
@@ -274,22 +276,25 @@ class FitND:
         
         return dE
     
-    def get_analog_Ib(self, weights):
+    def get_analog_Ib(self, weights, update_scale = True):
         """
         Get analog current values for sigmoid biases corresponding to weights.
         """
-        self.update_scl_t(w = weights)
+        if update_scale:
+            self.update_scl_t(w = weights)
         
         Ib = self.get_Ib(weights)
         
         return Ib
     
-    def get_analog_g(self, g):
+    def get_analog_g(self, g, update_scale = True):
         """
         Get analog current values for maximal conductances.
         """
         g = np.asarray(g)
-        self.update_scl_t(g = g)
+        
+        if update_scale:
+            self.update_scl_t(g = g)
         
         g = g / self.scl_t / self.C_ratio
         
