@@ -46,7 +46,7 @@ class FitND:
         # Calculate base voltages (V_ref = 0 so Vb will be centered around 0)
         self.Vb = NDModel.get_Vb() + self.Vmean # add Vmean to center around it
         
-        # Maximal coefficients
+        # Maximal coefficients used for scaling
         self.wmax = 0
         self.gmax = 0
         self.scl_t = 0
