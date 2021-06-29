@@ -256,7 +256,7 @@ class NeuroDynModel(NeuronalModel):
             g_factor = (self.kappa_lin / self.Vt) * (self.I_master / 1024)
         else:
             g_factor = 1
-        return dg * g_factor * self.perturb_g
+        return dg * g_factor
         
     def convert_potential(self, dErev):
         dErev = np.asarray(dErev)
@@ -266,17 +266,17 @@ class NeuroDynModel(NeuronalModel):
             E_factor = (self.I_voltage / 1024) * self.Res
         else:
             E_factor = 1
-        return dErev * E_factor * self.perturb_Erev + self.V_ref
+        return dErev * E_factor + self.V_ref
     
     def update_dg(self, dg):
         dg = np.asarray(dg)
         self.dg = dg
-        self.gna,self.gk,self.gl = self.convert_conductance(dg)
+        self.gna,self.gk,self.gl = self.convert_conductance(dg * self.perturb_g )
     
     def update_dErev(self, dErev):
         dErev = np.asarray(dErev)
         self.dErev = dErev
-        self.Ena,self.Ek,self.El = self.convert_potential(dErev)
+        self.Ena,self.Ek,self.El = self.convert_potential(self.dErev * self.perturb_Erev)
         
     def update_dIb(self, dIb):
         dIb = np.asarray(dIb)
@@ -349,8 +349,8 @@ class NeuroDynModel(NeuronalModel):
         self.perturb_Erev = 1 + sigma * np.random.randn(*self.dErev.shape)
         
         # Update g and Erev
-        self.gna,self.gk,self.gl = self.convert_conductance(self.dg)
-        self.Ena,self.Ek,self.El = self.convert_potential(self.dErev)
+        self.gna,self.gk,self.gl = self.convert_conductance(self.dg * self.perturb_g)
+        self.Ena,self.Ek,self.El = self.convert_potential(self.dErev * self.perturb_Erev)
                 
         # Perturb voltage offsets?
         # Would add ~15mV sigma to each 'bias' voltage
@@ -574,6 +574,22 @@ class NDSynapse(Synapse):
         
         # Initialize synapse parameters
         super().__init__(g, E, r)
+
+    def update_dg(self, dg):
+        self.dg = dg
+        self.gsyn = self.ND.convert_conductance(dg)
+    
+    def update_dE(self, dE):
+        self.dE = dE
+        self.Esyn = self.ND.convert_potential(dE)
+        
+    def update_dIb(self, dIb):
+        dIb = np.asarray(dIb)
+        self.dIb = dIb
+        
+        ND = self.ND
+        Ib = ND.convert_current(dIb)
+        self.r = NeuroDynActivation(Ib, ND.kappa, ND.C_gate, ND.Vt, ND.Vb)
         
 class NeuronalNetwork(NeuronalModel):
     """
