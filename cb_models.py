@@ -683,7 +683,7 @@ class NeuroDynBoard(NeuronalNetwork):
         return self.neurons[i]
     
     def get_syn(self, i, j):
-        return self.syns[i][j]
+        return self.syns[i][j][0]
     
     def set_gap(self, g, i, j):
         self.gap[i][j] = g
@@ -708,12 +708,12 @@ class NeuroCube(NeuronalNetwork):
         # Group all gap junctions
         gap = np.zeros((16, 16))
         for i in range(4):
-            gap[i*4:(i+1)*4][i*4:(i+1)*4] = boards[i].gap
+            gap[i*4:(i+1)*4, i*4:(i+1)*4] = boards[i].gap
         
         # Now repeat backward so that gap matrix of each board references
         # to the accumulated gap matrix
         for i in range(4):
-            boards[i].gap = gap[i*4:(i+1)*4][i*4:(i+1)*4]
+            boards[i].gap = gap[i*4:(i+1)*4, i*4:(i+1)*4]
         
         super().__init__(neurons, syns = syns, gap = gap)
     
