@@ -177,18 +177,18 @@ class NeuroDynModel(NeuronalModel):
         self.x_len = 4
         
         if (dg is None):
-            dg = np.array([400, 160, 12])
+            dg = np.array([1023, 307, 3])
             
         if (dErev is None):
-            dErev = np.array([450, -250, -150])
+            dErev = np.array([829, -829, -545])
         
         if (dIb is None):
-            dIb_m = np.array([[0, 0, 120, 400, 800, 1023, 1023],
-                     [1023, 1023, 1023, 1023, 0, 0, 0]])
-            dIb_h = np.array([[237, 5, 7, 6, 0, 0, 0],
-                    [0, 0, 0, 0, 41, 25, 8]])
-            dIb_n = np.array([[0, 0, 0, 0, 80, 40, 250],
-                    [4, 0, 0, 10, 0, 0, 4]])
+            dIb_m = np.array([[0, 1, 11, 23, 0, 0, 870],
+                     [190, 4, 6, 0, 0, 0, 0]])
+            dIb_h = np.array([[3, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 6, 3, 0, 0, 0]])
+            dIb_n = np.array([[0, 0, 2, 2, 3, 0, 0],
+                    [15, 0, 0, 0, 0, 0, 0]])
             dIb = [dIb_m, dIb_h, dIb_n]
         
         self.V_ref = V_ref              # Unit V
@@ -672,7 +672,7 @@ class NeuroDynBoard(NeuronalNetwork):
         neurons = [NeuroDynModel() for i in range(4)]
         
         # Define synapses
-        syns = [[[Synapse()] if (i != j) else None for j in range (4)] for i in range (4)]
+        syns = [[[NDSynapse(ND = neurons[0])] if (i != j) else None for j in range (4)] for i in range (4)]
         
         # Set gap junction matrix to zeros
         gap = np.zeros((4, 4))
