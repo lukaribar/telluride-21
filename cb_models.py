@@ -553,11 +553,15 @@ class AMPASynapse(Synapse):
         super().__init__(gsyn, 65, AMPA())
         
 class NDSynapse(Synapse):
-    def __init__(self, dg, dE, dIb, ND = None):
+    def __init__(self, dg = 0, dE = 130, dIb = None, ND = None):
         # Set parent NeuroDyn chip to get the parameters
         if (ND is None):
             ND = NeuroDynModel()
         self.ND = ND
+        
+        if dIb is None:
+            dIb = np.array([[0, 0, 0, 0, 0, 0, 378],
+                            [0, 0, 0, 0, 0, 0, 1]])
         
         # Digital values
         self.dg = dg
@@ -668,7 +672,7 @@ class NeuroDynBoard(NeuronalNetwork):
         neurons = [NeuroDynModel() for i in range(4)]
         
         # Define synapses
-        syns = [[Synapse() if (i != j) else None for j in range (4)] for i in range (4)]
+        syns = [[[Synapse()] if (i != j) else None for j in range (4)] for i in range (4)]
         
         # Set gap junction matrix to zeros
         gap = np.zeros((4, 4))
