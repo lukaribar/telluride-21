@@ -657,6 +657,7 @@ class NeuronalNetwork(NeuronalModel):
             dx.extend(neuron_i.vfield(x[i_start:i_end], Iext))
             
         dx.extend(dx_syn)
+        
         return dx
     
 class NeuroDynBoard(NeuronalNetwork):
@@ -701,9 +702,9 @@ class NeuroCube(NeuronalNetwork):
         neurons = [neuron for board in boards for neuron in board.neurons]
         
         # Group all synapses
-        syns = [[None for j in range(16)] for i in range(16)]
+        syns = np.array([[None for j in range(16)] for i in range(16)])
         for i in range(4):
-            syns[i*4:(i+1)*4][i*4:(i+1)*4] = boards[i].syns
+            syns[i*4:(i+1)*4, i*4:(i+1)*4] = boards[i].syns
             
         # Group all gap junctions
         gap = np.zeros((16, 16))
