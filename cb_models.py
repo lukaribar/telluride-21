@@ -177,18 +177,18 @@ class NeuroDynModel(NeuronalModel):
         self.x_len = 4
         
         if (dg is None):
-            dg = np.array([400, 160, 12])
+            dg = np.array([1023, 307, 3])
             
         if (dErev is None):
-            dErev = np.array([450, -250, -150])
+            dErev = np.array([829, -829, -545])
         
         if (dIb is None):
-            dIb_m = np.array([[0, 0, 120, 400, 800, 1023, 1023],
-                     [1023, 1023, 1023, 1023, 0, 0, 0]])
-            dIb_h = np.array([[237, 5, 7, 6, 0, 0, 0],
-                    [0, 0, 0, 0, 41, 25, 8]])
-            dIb_n = np.array([[0, 0, 0, 0, 80, 40, 250],
-                    [4, 0, 0, 10, 0, 0, 4]])
+            dIb_m = np.array([[0, 1, 11, 23, 0, 0, 870],
+                     [190, 4, 6, 0, 0, 0, 0]])
+            dIb_h = np.array([[3, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 6, 3, 0, 0, 0]])
+            dIb_n = np.array([[0, 0, 2, 2, 3, 0, 0],
+                    [15, 0, 0, 0, 0, 0, 0]])
             dIb = [dIb_m, dIb_h, dIb_n]
         
         self.V_ref = V_ref              # Unit V
@@ -256,7 +256,7 @@ class NeuroDynModel(NeuronalModel):
             g_factor = (self.kappa_lin / self.Vt) * (self.I_master / 1024)
         else:
             g_factor = 1
-        return dg * g_factor * self.perturb_g
+        return dg * g_factor
         
     def convert_potential(self, dErev):
         dErev = np.asarray(dErev)
@@ -266,17 +266,17 @@ class NeuroDynModel(NeuronalModel):
             E_factor = (self.I_voltage / 1024) * self.Res
         else:
             E_factor = 1
-        return dErev * E_factor * self.perturb_Erev + self.V_ref
+        return dErev * E_factor + self.V_ref
     
     def update_dg(self, dg):
         dg = np.asarray(dg)
         self.dg = dg
-        self.gna,self.gk,self.gl = self.convert_conductance(dg)
+        self.gna,self.gk,self.gl = self.convert_conductance(dg * self.perturb_g )
     
     def update_dErev(self, dErev):
         dErev = np.asarray(dErev)
         self.dErev = dErev
-        self.Ena,self.Ek,self.El = self.convert_potential(dErev)
+        self.Ena,self.Ek,self.El = self.convert_potential(self.dErev * self.perturb_Erev)
         
     def update_dIb(self, dIb):
         dIb = np.asarray(dIb)
@@ -349,8 +349,8 @@ class NeuroDynModel(NeuronalModel):
         self.perturb_Erev = 1 + sigma * np.random.randn(*self.dErev.shape)
         
         # Update g and Erev
-        self.gna,self.gk,self.gl = self.convert_conductance(self.dg)
-        self.Ena,self.Ek,self.El = self.convert_potential(self.dErev)
+        self.gna,self.gk,self.gl = self.convert_conductance(self.dg * self.perturb_g)
+        self.Ena,self.Ek,self.El = self.convert_potential(self.dErev * self.perturb_Erev)
                 
         # Perturb voltage offsets?
         # Would add ~15mV sigma to each 'bias' voltage
@@ -553,11 +553,15 @@ class AMPASynapse(Synapse):
         super().__init__(gsyn, 65, AMPA())
         
 class NDSynapse(Synapse):
-    def __init__(self, dg, dE, dIb, ND = None):
+    def __init__(self, dg = 0, dE = 130, dIb = None, ND = None):
         # Set parent NeuroDyn chip to get the parameters
         if (ND is None):
             ND = NeuroDynModel()
         self.ND = ND
+        
+        if dIb is None:
+            dIb = np.array([[0, 0, 0, 0, 0, 0, 378],
+                            [0, 0, 0, 0, 0, 0, 1]])
         
         # Digital values
         self.dg = dg
@@ -574,6 +578,22 @@ class NDSynapse(Synapse):
         
         # Initialize synapse parameters
         super().__init__(g, E, r)
+
+    def update_dg(self, dg):
+        self.dg = dg
+        self.gsyn = self.ND.convert_conductance(dg)
+    
+    def update_dE(self, dE):
+        self.dE = dE
+        self.Esyn = self.ND.convert_potential(dE)
+        
+    def update_dIb(self, dIb):
+        dIb = np.asarray(dIb)
+        self.dIb = dIb
+        
+        ND = self.ND
+        Ib = ND.convert_current(dIb)
+        self.r = NeuroDynActivation(Ib, ND.kappa, ND.C_gate, ND.Vt, ND.Vb)
         
 class NeuronalNetwork(NeuronalModel):
     """
@@ -637,6 +657,7 @@ class NeuronalNetwork(NeuronalModel):
             dx.extend(neuron_i.vfield(x[i_start:i_end], Iext))
             
         dx.extend(dx_syn)
+        
         return dx
     
 class NeuroDynBoard(NeuronalNetwork):
@@ -652,7 +673,7 @@ class NeuroDynBoard(NeuronalNetwork):
         neurons = [NeuroDynModel() for i in range(4)]
         
         # Define synapses
-        syns = [[Synapse() if (i != j) else None for j in range (4)] for i in range (4)]
+        syns = [[[NDSynapse(ND = neurons[0])] if (i != j) else None for j in range (4)] for i in range (4)]
         
         # Set gap junction matrix to zeros
         gap = np.zeros((4, 4))
@@ -663,7 +684,7 @@ class NeuroDynBoard(NeuronalNetwork):
         return self.neurons[i]
     
     def get_syn(self, i, j):
-        return self.syns[i][j]
+        return self.syns[i][j][0]
     
     def set_gap(self, g, i, j):
         self.gap[i][j] = g
@@ -681,19 +702,19 @@ class NeuroCube(NeuronalNetwork):
         neurons = [neuron for board in boards for neuron in board.neurons]
         
         # Group all synapses
-        syns = [[None for j in range(16)] for i in range(16)]
+        syns = np.array([[None for j in range(16)] for i in range(16)])
         for i in range(4):
-            syns[i*4:(i+1)*4][i*4:(i+1)*4] = boards[i].syns
+            syns[i*4:(i+1)*4, i*4:(i+1)*4] = boards[i].syns
             
         # Group all gap junctions
         gap = np.zeros((16, 16))
         for i in range(4):
-            gap[i*4:(i+1)*4][i*4:(i+1)*4] = boards[i].gap
+            gap[i*4:(i+1)*4, i*4:(i+1)*4] = boards[i].gap
         
         # Now repeat backward so that gap matrix of each board references
         # to the accumulated gap matrix
         for i in range(4):
-            boards[i].gap = gap[i*4:(i+1)*4][i*4:(i+1)*4]
+            boards[i].gap = gap[i*4:(i+1)*4, i*4:(i+1)*4]
         
         super().__init__(neurons, syns = syns, gap = gap)
     

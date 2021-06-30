@@ -312,6 +312,8 @@ class FitND:
         """
         Scale an input to a standard Hodgkin-Huxley model to a NeuroDyn input.
         """
+        I0 = np.asarray(I0)
+        
         scl_v = self.HHModel.scl_v
         I = I0 * scl_v / self.scl_t / self.C_ratio
         return I
