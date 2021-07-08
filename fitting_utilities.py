@@ -5,7 +5,8 @@ Important: all fitting is done assuming that the rest potential
 """
 
 import numpy as np
-from scipy.optimize import nnls #, minimize, Bounds
+from numpy.core.numeric import NaN
+from scipy.optimize import nnls, lsq_linear #, minimize, Bounds
 import matplotlib.pyplot as plt
 from cb_models import NeuroDynModel
 
@@ -55,9 +56,13 @@ class FitND:
         C_HH = self.HHModel.C_m
         self.C_ratio = C_HH / self.C_ND
         
-    def fit_gating_variable(self, x):
+    def fit_gating_variable(self, x, ub=None):
         """
-        Fit a single gating variable using non-negative least squares
+        Fit a single gating variable.
+        If ub = 0, then use non-negative least squares.
+        If ub > 0, then use non-negative upper bounded least squares.
+        Arguments: x is a gating variable object
+                   ub is a floating point number
         """
         Vrange = self.vrange
         Vb = self.Vb
@@ -78,14 +83,19 @@ class FitND:
                 A_alpha[:,i] = 1 / (1 + np.exp(-1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
                 A_beta[:,i] = 1 / (1 + np.exp(1 * self.kappa * (Vb[i] - Vrange)  / self.Vt))
         
-        w_a = nnls(A_alpha, b_alpha)[0]
-        w_b = nnls(A_beta, b_beta)[0]
+        if ub is None:
+            w_a = nnls(A_alpha, b_alpha)[0]
+            w_b = nnls(A_beta, b_beta)[0]
+        else:
+            bd = (np.zeros(7),ub*np.ones(7))
+            w_a = lsq_linear(A_alpha, b_alpha, bounds=bd).x
+            w_b = lsq_linear(A_beta, b_beta, bounds=bd).x
         
         w = [w_a, w_b]
         A = [A_alpha, A_beta]
         
         return w, A
-    
+
     def convert_w_to_Ib(self, w):
         """
         Convert spline weights (units: 1/s) into appropriate NeuroDyn current
@@ -95,7 +105,7 @@ class FitND:
         Ib = w * self.C * self.Vt
         return Ib
     
-    def fitHH(self, plot_alpha_beta = False, plot_inf_tau = False):
+    def fitHH(self, plot_alpha_beta = False, plot_inf_tau = False, ub=None):
         """
         Fit the parameters to the Hodgkin-Huxley model passed during
         initialization
@@ -108,10 +118,10 @@ class FitND:
         X = [self.HHModel.m, self.HHModel.h, self.HHModel.n]
         labels = ['m', 'h', 'n']
         
-        return self.fit(X, labels, plot_alpha_beta, plot_inf_tau)
+        return self.fit(X, labels, plot_alpha_beta, plot_inf_tau, ub=ub)
     
     def fit(self, X, labels = None, plot_alpha_beta = False,
-            plot_inf_tau = False, update_scale = True):
+            plot_inf_tau = False, update_scale = True, ub=None):
         """
         Fits a list of gating variables in X with names in labels list.
         Returns a list of sigmoid basis functions weights.
@@ -125,7 +135,7 @@ class FitND:
         weights = []
         A = []
         for x in X:
-            w_x, A_x = self.fit_gating_variable(x)
+            w_x, A_x = self.fit_gating_variable(x, ub)
             weights.append(w_x)
             A.append(A_x)
         

@@ -5,17 +5,17 @@ Fit NeuroDyn model
 from fitting_utilities import FitND
 from cb_models import NeuroDynModel, HHModel
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Voltage scaling (important: assumes that HH is already written in SI units)
 scl_v = 3
 
 #ND = NeuroDynModel()
 HH = HHModel(scl_v=scl_v, SI_units=True)
-
 fit = FitND(HH)
 
 #%% Fit gating variables individually and compute quantized parameters
-c = fit.fitHH(plot_alpha_beta=True)
+c = fit.fitHH(plot_alpha_beta=True,ub=5000.0)
 g0 = [120e-3,36e-3,0.3e-3]
 E0 = [120e-3,-12e-3,10.6e-3]
 dIb = fit.get_digital_Ib(c)
