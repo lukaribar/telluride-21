@@ -163,6 +163,16 @@ class NeuronalModel(ABC):
         else:
             #... code forward-Euler integration
             return
+        
+    def vclamp(self, trange, x0, V, mode = "continuous"):
+        # Note: V should be a function of t, e.g., V = lambda t : V0
+        if mode == "continuous":
+            def odesys(t, x):
+                return self.vclamp_vfield(x, V(t))
+            return solve_ivp(odesys, trange, x0)
+        else:
+            #... code forward-Euler integration
+            return
 
 class NeuroDynModel(NeuronalModel):
     """
@@ -319,19 +329,34 @@ class NeuroDynModel(NeuronalModel):
             I = 2 * g * Vt /k * np.tanh(k * V / (2 * Vt))
         return I
     
+    def Ina(self, V, m, h):
+        return self.resistor(self.gna * (m**self.p) * (h**self.q), V - self.Ena)
+    
+    def Ik(self, V, n):
+        return self.resistor(self.gk * (n**self.r), V - self.Ek)
+        
+    def Il(self, V):
+        return self.resistor(self.gl, V - self.El)
+        
     def i_int(self,V, m, h, n):
-        Ina = self.resistor(self.gna * (m**self.p) * (h**self.q), V - self.Ena)
-        Ik = self.resistor(self.gk * (n**self.r), V - self.Ek)
-        Il = self.resistor(self.gl, V - self.El)
-        return (Ina + Ik + Il)
+        return (self.Ina(V, m , h) + self.Ik(V, n) + self.Il(V))
     
     def vfield(self, x, I):
         V, m, h, n = x
         dV = (-self.i_int(V, m, h, n) + I) / self.C_m
-        dm = self.m.vfield(m,V)
-        dh = self.h.vfield(h,V)
-        dn = self.n.vfield(n,V)
+        dm = self.m.vfield(m, V)
+        dh = self.h.vfield(h, V)
+        dn = self.n.vfield(n, V)
         return [dV, dm, dh, dn]
+    
+    def vclamp_vfield(self, x, V):
+        m, h, n = x
+        
+        dm = self.m.vfield(m, V)
+        dh = self.h.vfield(h, V)
+        dn = self.n.vfield(n, V)
+        
+        return [dm, dh, dn]
 
     def perturb(self, sigma = 0.15):
         # Pertrub exponents
@@ -408,18 +433,17 @@ class HHModel(NeuronalModel):
         # Save the nominal parameters
         self.nominal = deepcopy(self)
 
-    def i_int(self, V, m, h, n):
-        return (self.gna * (m**self.p) * (h**self.q) * (V - self.Ena) +
-                self.gk * (n**self.r) * (V - self.Ek) + self.gl * (V - self.El))
-
-    def iNa_ss(self, V):
-        return self.gna * (self.m.inf(V)**self.p) * (self.h.inf(V)**self.q) * (V - self.Ena)
-
-    def iK_ss(self, V):
-        return self.gk * (self.n.inf(V)**self.r) * (V - self.Ek)    
-
-    def iL_ss(self, V):
+    def Ina(self, V, m, h):
+        return self.gna * (m**self.p) * (h**self.q) * (V - self.Ena)
+    
+    def Ik(self, V, n):
+        return self.gk * (n**self.r) * (V - self.Ek)
+    
+    def Il(self, V):
         return self.gl * (V - self.El)
+    
+    def i_int(self, V, m, h, n):
+        return self.Ina(V, m, h) + self.Ik(V, n) + self.Il(V)
 
     def vfield(self, x, I):
         V, m, h, n = x
@@ -432,6 +456,15 @@ class HHModel(NeuronalModel):
         dh = self.h.vfield(h, V)
         dn = self.n.vfield(n, V)
         return [dV, dm, dh, dn]
+    
+    def vclamp_vfield(self, x, V):
+        m, h, n = x
+        
+        dm = self.m.vfield(m, V)
+        dh = self.h.vfield(h, V)
+        dn = self.n.vfield(n, V)
+        
+        return [dm, dh, dn]
         
     def perturb(self, sigma = 0.15):
         nom = self.nominal
