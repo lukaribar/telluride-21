@@ -151,14 +151,14 @@ class NeuronalModel(ABC):
     Abstract class for neuronal models implementing the simulate method.
     """
     @abstractmethod
-    def vfield(self, x, I, print_int_variables):
+    def vfield(self, x, I):
         pass
 
-    def simulate(self, trange, x0, Iapp, mode="continuous", print_int_variables=False):
+    def simulate(self, trange, x0, Iapp, mode="continuous"):
         # Note: Iapp should be a function of t, e.g., Iapp = lambda t : I0
         if mode == "continuous":
             def odesys(t, x):
-                return self.vfield(x, Iapp(t), print_int_variables)
+                return self.vfield(x, Iapp(t))
             return solve_ivp(odesys, trange, x0)
         else:
             #... code forward-Euler integration
@@ -319,28 +319,18 @@ class NeuroDynModel(NeuronalModel):
             I = 2 * g * Vt /k * np.tanh(k * V / (2 * Vt))
         return I
     
-    def i_int(self,V, m, h, n,):
+    def i_int(self,V, m, h, n):
         Ina = self.resistor(self.gna * (m**self.p) * (h**self.q), V - self.Ena)
         Ik = self.resistor(self.gk * (n**self.r), V - self.Ek)
         Il = self.resistor(self.gl, V - self.El)
         return (Ina + Ik + Il)
     
-    def vfield(self, x, I, print_int_variables):
+    def vfield(self, x, I):
         V, m, h, n = x
         dV = (-self.i_int(V, m, h, n) + I) / self.C_m
         dm = self.m.vfield(m,V)
         dh = self.h.vfield(h,V)
         dn = self.n.vfield(n,V)
-        if (print_int_variables):
-            V, m, h, n = x
-            print('internal current:',-((dV*self.C_m)-I),'A')
-            print('alpha_h:',self.h.alpha(V),'sec-1')
-            print('beta_h:',self.h.beta(V),'sec-1')
-            print('tau_h:',1/(self.h.alpha(V) + self.h.beta(V)),'sec')
-            print('h_inf:',self.h.alpha(V)/(self.h.alpha(V) + self.h.beta(V)))
-            print('\n')
-        else:
-            pass
         return [dV, dm, dh, dn]
 
     def perturb(self, sigma = 0.15):
@@ -441,7 +431,6 @@ class HHModel(NeuronalModel):
         dm = self.m.vfield(m, V)
         dh = self.h.vfield(h, V)
         dn = self.n.vfield(n, V)
-           
         return [dV, dm, dh, dn]
         
     def perturb(self, sigma = 0.15):
